@@ -46,8 +46,11 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "រៀបចំដោយ៖ ការិយាល័យសុវត្ថិភាពបច្ចេកវិទ្យាព័ត៍មាន"
     )
 
-    banner_path = os.path.join(os.path.dirname(__file__), "static", "images", "welcome_banner.jpg")
-    if os.path.exists(banner_path):
+    banner_png = os.path.join(os.path.dirname(__file__), "static", "images", "welcome_banner.png")
+    banner_jpg = os.path.join(os.path.dirname(__file__), "static", "images", "welcome_banner.jpg")
+    banner_path = banner_png if os.path.exists(banner_png) else (banner_jpg if os.path.exists(banner_jpg) else None)
+
+    if banner_path:
         with open(banner_path, "rb") as photo_file:
             await update.message.reply_photo(
                 photo=photo_file,
@@ -56,6 +59,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
     else:
         await update.message.reply_text(welcome_caption, parse_mode="Markdown")
+
 
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
