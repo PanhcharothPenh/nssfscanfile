@@ -140,6 +140,7 @@ async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     Handles document uploads (.apk, .exe, .zip, .z, .7z, .pdf, etc.) and performs VirusTotal v3 verification.
     Gracefully handles files >20MB limited by Telegram Bot API.
+    Matches the exact Khmer security report design requested by user.
     """
     if not update.message or not update.message.document:
         return
@@ -154,7 +155,7 @@ async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # Inform user that file scanning is in progress
     progress_msg = await update.message.reply_text(
-        f"🔍 **កំពុងស្កេនឯកសារ:** `{filename}` ({round(file_size/(1024*1024), 2)} MB)...",
+        f"🔍 **កំពុងស្កេនឯកសារ៖** `{filename}` ({round(file_size/(1024*1024), 2)} MB)...",
         parse_mode="Markdown"
     )
 
@@ -184,45 +185,40 @@ async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE):
             virustotal_details=vt_result
         )
 
-        # Format Response cleanly
+        # Format Response matching user's exact Khmer template
         if status == "DANGEROUS":
-            badge = "🔴 **គ្រោះថ្នាក់ខ្លាំង (DANGEROUS MALWARE)**"
-            rec = "⛔ **ហាមដំឡើង ឬចុចបើកឯកសារនេះដាច់ខាត!** វាអាចបង្កប់មេរោគ Ransomware ឬ Spyware!"
+            badge = "🔴 **គ្រោះថ្នាក់ខ្លាំង (Malware)**"
+            rec = "កុំទាញយក ឬចែករំលែកឯកសារនេះ ព្រោះវាអាចបង្កគ្រោះថ្នាក់ដល់កុំព្យូទ័រ និងទិន្នន័យរបស់អ្នក។"
             action_steps = [
-                "⛔ **១. ហាមចុចបើក:** ហាមទាញយក ឬ Extract បើកឯកសារនេះដាច់ខាត!",
-                "🚫 **២. ប្លុក & Report:** ចុច Block និង Report គណនីសង្ស័យនេះក្នុង Telegram",
-                "🧹 **៣. លុបសារចេញ:** លុបសារ និងឯកសារនេះចេញពី Chat របស់អ្នកភ្លាមៗ"
+                "⛔ កុំចុចបើក ឬដំណើរការឯកសារនេះ។",
+                "🚫 Block និង Report គណនីដែលបានផ្ញើ។",
+                "🗑️ លុបសារ និងឯកសារនេះចេញភ្លាមៗ។"
             ]
         elif status == "SUSPICIOUS":
-            badge = "🟡 **ឯកសារគួរឱ្យសង្ស័យ (SUSPICIOUS FILE)**"
-            rec = "⚠️ ឯកសារប្រភេទនេះអាចមានហានិភ័យ សូមផ្ទៀងផ្ទាត់ប្រភពឱ្យបានច្បាស់លាស់។"
+            badge = "🟡 **គួរឱ្យសង្ស័យ (Suspicious File)**"
+            rec = "សូមផ្ទៀងផ្ទាត់ប្រភពឱ្យបានច្បាស់លាស់មុននឹងធ្វើការទាញយក ឬបើកឯកសារនេះ។"
             action_steps = [
-                "⚠️ **១. កុំប្រញាប់បើក:** ឯកសារប្រភេទបង្រួម (.z / .zip) អាចបង្កប់កូដបញ្ជា ឬមេរោគ",
-                "🔍 **២. ផ្ទៀងផ្ទាត់ប្រភព:** ពិនិត្យមើលថាតើអ្នកផ្ញើជាមនុស្សដែលអ្នកស្គាល់ច្បាស់ឬទេ",
-                "🛡️ **៣. ស្កេន Antivirus:** ប្រើប្រាស់ Antivirus លើកុំព្យូទ័រ/ទូរស័ព្ទស្កេនបន្ថែម"
+                "⚠️ កុំប្រញាប់បើក ឬដំណើរការឯកសារនេះ។",
+                "🔍 ផ្ទៀងផ្ទាត់ប្រភពអ្នកផ្ញើឱ្យបានច្បាស់លាស់។",
+                "🛡️ ប្រើប្រាស់ Antivirus ស្កេនបន្ថែមមុននឹងបើក។"
             ]
         else:
-            badge = "🟢 **ឯកសារមានសុវត្ថិភាព (SAFE FILE)**"
-            rec = "✅ មិនបានរកឃើញសញ្ញាណមេរោគក្នុងឯកសារនេះឡើយ។"
+            badge = "🟢 **សុវត្ថិភាព (Safe File)**"
+            rec = "ឯកសារនេះហាក់ដូចជាមានសុវត្ថិភាព មិនបានរកឃើញសញ្ញាណមេរោគឡើយ។"
             action_steps = [
-                "✅ **១. ប្រើប្រាស់ធម្មតា:** អាចបើកមើលដោយសុវត្ថិភាព",
-                "💡 **២. ប្រុងប្រយ័ត្នជាប្រចាំ:** តែងតែផ្ទៀងផ្ទាត់ប្រភពមុនដំឡើង"
+                "✅ អាចបើកមើល ឬទាញយកដោយសុវត្ថិភាព។",
+                "💡 តែងតែរក្សាការប្រុងប្រយ័ត្នជាប្រចាំ។"
             ]
 
-        size_note = f"\n⚠️ *(ទំហំ {round(file_size/(1024*1024), 2)}MB > 20MB API Limit - វិភាគតាម Structure & Metadata)*" if file_size > 20 * 1024 * 1024 else ""
+        size_note = f"\n*(ទំហំ {round(file_size/(1024*1024), 2)}MB > 20MB API Limit - វិភាគតាម Extension Check)*" if file_size > 20 * 1024 * 1024 else ""
 
         report_text = (
-            f"🛡️ **NSSF FILE SECURITY REPORT**\n"
-            f"═════════════════════════\n\n"
-            f"📁 **ឈ្មោះឯកសារ (FILE NAME):**\n`{filename}`\n\n"
-            f"📦 **ទំហំឯកសារ (FILE SIZE):** `{round(file_size/(1024*1024), 2)} MB`\n"
-            f"🏷️ **កម្រិតហានិភ័យ (STATUS):**\n{badge}\n\n"
-            f"ℹ️ **ប្រភេទឯកសារ (FILE TYPE):**\n{vt_result.get('extension_description', DANGEROUS_EXTENSIONS.get(file_ext, 'File'))}{size_note}\n\n"
-            f"🛠️ **ជំហានអនុវត្តជាក់ស្តែង (ACTIONABLE STEPS):**\n" + "\n".join([f"{step}" for step in action_steps]) + "\n\n"
-            f"═════════════════════════\n"
-            f"💡 **ការណែនាំ (RECOMMENDATION):**\n{rec}"
+            f"🛡️ **លទ្ធផលត្រួតពិនិត្យឯកសារ**\n\n"
+            f"📁 **ឈ្មោះឯកសារ៖** `{filename}`{size_note}\n"
+            f"🏷️ **ស្ថានភាព៖** {badge}\n\n"
+            f"⚠️ **សូមអនុវត្ត៖**\n" + "\n".join(action_steps) + "\n\n"
+            f"💡 **ការណែនាំ៖** {rec}"
         )
-
 
         await progress_msg.edit_text(report_text, parse_mode="Markdown")
 
@@ -230,53 +226,51 @@ async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE):
         logger.error(f"Error scanning file {filename}: {e}")
         ext_desc = DANGEROUS_EXTENSIONS.get(file_ext, "File")
         fallback_msg = (
-            f"🛡️ **NSSF FILE SECURITY REPORT**\n"
-            f"═════════════════════════\n\n"
-            f"📁 **ឈ្មោះឯកសារ:** `{filename}`\n"
-            f"🏷️ **ប្រភេទ:** {ext_desc}\n"
-            f"⚠️ ឯកសារប្រភេទ `{file_ext}` ត្រូវបានវិភាគសុវត្ថិភាពតាម Metadata & Extension Check។"
+            f"🛡️ **លទ្ធផលត្រួតពិនិត្យឯកសារ**\n\n"
+            f"📁 **ឈ្មោះឯកសារ៖** `{filename}`\n"
+            f"🏷️ **ស្ថានភាព៖** 🟡 **គួរឱ្យសង្ស័យ ({ext_desc})**\n\n"
+            f"⚠️ **សូមអនុវត្ត៖**\n"
+            f"⚠️ កុំប្រញាប់បើក ឬដំណើរការឯកសារនេះ។\n"
+            f"🔍 ផ្ទៀងផ្ទាត់ប្រភពអ្នកផ្ញើឱ្យបានច្បាស់លាស់។\n\n"
+            f"💡 **ការណែនាំ៖** សូមផ្ទៀងផ្ទាត់ប្រភពឱ្យបានច្បាស់លាស់មុននឹងបើកឯកសារនេះ។"
         )
         await progress_msg.edit_text(fallback_msg, parse_mode="Markdown")
 
 
 def format_security_report(ai_report: dict, vt_reports: list) -> str:
     """
-    Format rich security alert response in Khmer and English.
+    Format rich security alert response in Khmer matching user template.
     """
     badge = ai_report.get("risk_badge", "🟢 SAFE")
-    score = ai_report.get("risk_score", 0)
-    category = ai_report.get("category", "General")
     summary_kh = ai_report.get("summary_kh", "")
     rec = ai_report.get("recommendation", "")
     action_steps = ai_report.get("action_steps", [])
 
     factors_str = ""
     if ai_report.get("threat_factors"):
-        factors_str = "\n📌 **សញ្ញាណហានិភ័យ (DETECTED INDICATORS):**\n" + "\n".join([f"• {f}" for f in ai_report["threat_factors"]])
+        factors_str = "\n\n📌 **សញ្ញាណហានិភ័យ៖**\n" + "\n".join([f"• {f}" for f in ai_report["threat_factors"]])
 
     vt_str = ""
     if vt_reports:
-        vt_str = "\n\n🌐 **VIRUSTOTAL v3 INTEL SCAN:**\n"
+        vt_str = "\n\n🌐 **លទ្ធផលស្កេន VirusTotal v3 Link:**\n"
         for v in vt_reports:
-            vt_str += f"• Target: `{v.get('target', '')}` ➔ {v.get('status')} ({v.get('malicious_count', 0)} / 70 Engines Flagged)\n"
+            vt_str += f"• `{v.get('target', '')}` ➔ {v.get('status')} ({v.get('malicious_count', 0)}/70 engines flagged)\n"
 
     actions_str = ""
     if action_steps:
-        actions_str = "\n\n🛠️ **ជំហានអនុវត្តជាក់ស្តែង (ACTIONABLE STEPS):**\n" + "\n".join([f"{step}" for step in action_steps])
+        actions_str = "\n\n⚠️ **សូមអនុវត្ត៖**\n" + "\n".join([f"{step}" for step in action_steps])
 
     report = (
-        f"🛡️ **NSSF SECURITY SCAN REPORT**\n"
-        f"═════════════════════════\n\n"
-        f"🚨 **កម្រិតហានិភ័យ (RISK LEVEL):**\n{badge} *(Score: {score} / 100)*\n\n"
-        f"🏷️ **ប្រភេទសេនារីយ៉ូ (CATEGORY):**\n`{category}`\n\n"
-        f"📝 **ការវិភាគខ្លឹមសារ (SUMMARY):**\n{summary_kh}"
+        f"🛡️ **លទ្ធផលត្រួតពិនិត្យសារ & តំណភ្ជាប់**\n\n"
+        f"🏷️ **ស្ថានភាព៖** {badge}\n"
+        f"📝 **ខ្លឹមសារសារ៖** {summary_kh}"
         f"{factors_str}"
         f"{vt_str}"
         f"{actions_str}\n\n"
-        f"═════════════════════════\n"
-        f"💡 **ការណែនាំ (RECOMMENDATION):**\n{rec}"
+        f"💡 **ការណែនាំ៖** {rec}"
     )
     return report
+
 
 
 
