@@ -184,38 +184,54 @@ async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE):
             virustotal_details=vt_result
         )
 
-        # Format Response
+        # Format Response cleanly
         if status == "DANGEROUS":
-            badge = "🔴 ឯកសារគ្រោះថ្នាក់ (MALWARE / DANGEROUS FILE)"
+            badge = "🔴 **គ្រោះថ្នាក់ខ្លាំង (DANGEROUS MALWARE)**"
             rec = "⛔ **ហាមដំឡើង ឬចុចបើកឯកសារនេះដាច់ខាត!** វាអាចបង្កប់មេរោគ Ransomware ឬ Spyware!"
+            action_steps = [
+                "⛔ **១. ហាមចុចបើក:** ហាមទាញយក ឬ Extract បើកឯកសារនេះដាច់ខាត!",
+                "🚫 **២. ប្លុក & Report:** ចុច Block និង Report គណនីសង្ស័យនេះក្នុង Telegram",
+                "🧹 **៣. លុបសារចេញ:** លុបសារ និងឯកសារនេះចេញពី Chat របស់អ្នកភ្លាមៗ"
+            ]
         elif status == "SUSPICIOUS":
-            badge = "🟡 ឯកសារគួរឱ្យសង្ស័យ (SUSPICIOUS FILE)"
+            badge = "🟡 **ឯកសារគួរឱ្យសង្ស័យ (SUSPICIOUS FILE)**"
             rec = "⚠️ ឯកសារប្រភេទនេះអាចមានហានិភ័យ សូមផ្ទៀងផ្ទាត់ប្រភពឱ្យបានច្បាស់លាស់។"
+            action_steps = [
+                "⚠️ **១. កុំប្រញាប់បើក:** ឯកសារប្រភេទបង្រួម (.z / .zip) អាចបង្កប់កូដបញ្ជា ឬមេរោគ",
+                "🔍 **២. ផ្ទៀងផ្ទាត់ប្រភព:** ពិនិត្យមើលថាតើអ្នកផ្ញើជាមនុស្សដែលអ្នកស្គាល់ច្បាស់ឬទេ",
+                "🛡️ **៣. ស្កេន Antivirus:** ប្រើប្រាស់ Antivirus លើកុំព្យូទ័រ/ទូរស័ព្ទស្កេនបន្ថែម"
+            ]
         else:
-            badge = "🟢 ឯកសារមានសុវត្ថិភាព (SAFE FILE)"
+            badge = "🟢 **ឯកសារមានសុវត្ថិភាព (SAFE FILE)**"
             rec = "✅ មិនបានរកឃើញសញ្ញាណមេរោគក្នុងឯកសារនេះឡើយ។"
+            action_steps = [
+                "✅ **១. ប្រើប្រាស់ធម្មតា:** អាចបើកមើលដោយសុវត្ថិភាព",
+                "💡 **២. ប្រុងប្រយ័ត្នជាប្រចាំ:** តែងតែផ្ទៀងផ្ទាត់ប្រភពមុនដំឡើង"
+            ]
 
-        size_note = f"\n⚠️ *(ចំណាំ៖ ឯកសារមានទំហំ {round(file_size/(1024*1024), 2)}MB > 20MB ទាញយកតាម Telegram API limit - បានវិភាគតាម File Structure & Metadata Security)*" if file_size > 20 * 1024 * 1024 else ""
+        size_note = f"\n⚠️ *(ទំហំ {round(file_size/(1024*1024), 2)}MB > 20MB API Limit - វិភាគតាម Structure & Metadata)*" if file_size > 20 * 1024 * 1024 else ""
 
         report_text = (
-            f"🛡️ **លទ្ធផលស្កេនឯកសារ (File Security Report)**\n\n"
-            f"📁 **ឈ្មោះឯកសារ (File Name):** `{filename}`\n"
-            f"📦 **ទំហំឯកសារ:** {round(file_size/(1024*1024), 2)} MB\n"
-            f"🏷️ **ស្ថានភាព (Status):** {badge}\n"
-            f"🔬 **Security Engine:** {vt_result.get('provider', 'VirusTotal v3')}\n"
+            f"🛡️ **NSSF FILE SECURITY REPORT**\n"
+            f"═════════════════════════\n\n"
+            f"📁 **ឈ្មោះឯកសារ (FILE NAME):**\n`{filename}`\n\n"
+            f"📦 **ទំហំឯកសារ (FILE SIZE):** `{round(file_size/(1024*1024), 2)} MB`\n"
+            f"🏷️ **កម្រិតហានិភ័យ (STATUS):**\n{badge}\n\n"
+            f"🔬 **SECURITY ENGINE:**\n`{vt_result.get('provider', 'VirusTotal v3 Intelligence')}`\n"
             f"ℹ️ **ប្រភេទឯកសារ:** {vt_result.get('extension_description', DANGEROUS_EXTENSIONS.get(file_ext, 'File'))}{size_note}\n\n"
-            f"💡 **ការណែនាំ (Recommendation):**\n{rec}"
+            f"🛠️ **ជំហានអនុវត្តជាក់ស្តែង (ACTIONABLE STEPS):**\n" + "\n".join([f"{step}" for step in action_steps]) + "\n\n"
+            f"═════════════════════════\n"
+            f"💡 **ការណែនាំ (RECOMMENDATION):**\n{rec}"
         )
 
         await progress_msg.edit_text(report_text, parse_mode="Markdown")
 
     except Exception as e:
         logger.error(f"Error scanning file {filename}: {e}")
-        # Fallback to extension security evaluation even if error occurs
         ext_desc = DANGEROUS_EXTENSIONS.get(file_ext, "File")
-        st = "SUSPICIOUS" if file_ext in DANGEROUS_EXTENSIONS else "SAFE"
         fallback_msg = (
-            f"🛡️ **លទ្ធផលស្កេនឯកសារ (File Security Report)**\n\n"
+            f"🛡️ **NSSF FILE SECURITY REPORT**\n"
+            f"═════════════════════════\n\n"
             f"📁 **ឈ្មោះឯកសារ:** `{filename}`\n"
             f"🏷️ **ប្រភេទ:** {ext_desc}\n"
             f"⚠️ ឯកសារប្រភេទ `{file_ext}` ត្រូវបានវិភាគសុវត្ថិភាពតាម Metadata & Extension Check។"
@@ -236,29 +252,32 @@ def format_security_report(ai_report: dict, vt_reports: list) -> str:
 
     factors_str = ""
     if ai_report.get("threat_factors"):
-        factors_str = "\n📌 **កត្តាហានិភ័យដែលបានរកឃើញ (Threat Indicators):**\n" + "\n".join([f"• {f}" for f in ai_report["threat_factors"]])
+        factors_str = "\n📌 **សញ្ញាណហានិភ័យ (DETECTED INDICATORS):**\n" + "\n".join([f"• {f}" for f in ai_report["threat_factors"]])
 
     vt_str = ""
     if vt_reports:
-        vt_str = "\n\n🌐 **VirusTotal v3 Link Analysis:**\n"
+        vt_str = "\n\n🌐 **VIRUSTOTAL v3 INTEL SCAN:**\n"
         for v in vt_reports:
-            vt_str += f"• URL: `{v.get('target', '')}` ➔ {v.get('status')} ({v.get('malicious_count', 0)}/70 engines flagged)\n"
+            vt_str += f"• Target: `{v.get('target', '')}` ➔ {v.get('status')} ({v.get('malicious_count', 0)} / 70 Engines Flagged)\n"
 
     actions_str = ""
     if action_steps:
-        actions_str = "\n\n🛠️ **ជំហានអនុវត្តជាក់ស្តែង (Actionable Steps):**\n" + "\n".join([f"{step}" for step in action_steps])
+        actions_str = "\n\n🛠️ **ជំហានអនុវត្តជាក់ស្តែង (ACTIONABLE STEPS):**\n" + "\n".join([f"{step}" for step in action_steps])
 
     report = (
-        f"🛡️ **លទ្ធផលផ្ទៀងផ្ទាត់សុវត្ថិភាព (AI Security Report)**\n\n"
-        f"🚨 **កម្រិតហានិភ័យ (Risk Level):** {badge} (Score: {score}/100)\n"
-        f"🏷️ **ប្រភេទសេនារីយ៉ូ (Category):** {category}\n\n"
-        f"📝 **ការវិភាគខ្លឹមសារ (Content Summary):**\n{summary_kh}"
+        f"🛡️ **NSSF SECURITY SCAN REPORT**\n"
+        f"═════════════════════════\n\n"
+        f"🚨 **កម្រិតហានិភ័យ (RISK LEVEL):**\n{badge} *(Score: {score} / 100)*\n\n"
+        f"🏷️ **ប្រភេទសេនារីយ៉ូ (CATEGORY):**\n`{category}`\n\n"
+        f"📝 **ការវិភាគខ្លឹមសារ (SUMMARY):**\n{summary_kh}"
         f"{factors_str}"
         f"{vt_str}"
         f"{actions_str}\n\n"
-        f"💡 **ការណែនាំសុវត្ថិភាព (Recommendation):**\n{rec}"
+        f"═════════════════════════\n"
+        f"💡 **ការណែនាំ (RECOMMENDATION):**\n{rec}"
     )
     return report
+
 
 
 def main():
