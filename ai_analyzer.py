@@ -49,49 +49,49 @@ class AIThreatAnalyzer:
         detected_banks = [b for b in bank_terms if b in text_lower]
         if detected_banks:
             score += 25
-            threat_factors.append(f"ការលើកឡើងអំពីឈ្មោះធនាគារ (Bank Mention): {', '.join(detected_banks)}")
+            threat_factors.append("ការលើកឡើងអំពីធនាគារ (Bank Impersonation Mention)")
 
         # Check 2: Fear-inducing / Urgent threats
         urgency_terms = ["urgent", "immediately", "suspended", "blocked", "legal action", "police", "penalty", "បន្ទាន់", "បិទគណនី", "គំរាម", "តុលាការ", "ប៉ូលីស", "ពិន័យ"]
         detected_urgency = [u for u in urgency_terms if u in text_lower]
         if detected_urgency:
             score += 30
-            threat_factors.append(f"ភាសាបង្កការភ័យខ្លាច/ប្រញាប់បន្ទាន់ (Urgent/Threat Language): {', '.join(detected_urgency)}")
+            threat_factors.append("ភាសាបង្កការភ័យខ្លាច/ប្រញាប់បន្ទាន់ (Urgent / Threat Language)")
 
         # Check 3: Forced Money Transfers & OTP Requests
         transfer_terms = ["transfer", "send money", "otp", "code", "password", "deposit", "ផ្ទេរប្រាក់", "ផ្ញើលុយ", "លេខកូដ", "ពាក្យសម្ងាត់", "បញ្ចូលលុយ"]
         detected_transfers = [t for t in transfer_terms if t in text_lower]
         if detected_transfers:
             score += 30
-            threat_factors.append(f"ការបង្ខំឱ្យផ្ទេរប្រាក់ ឬសុំលេខកូដ OTP (Money Transfer / OTP Request): {', '.join(detected_transfers)}")
+            threat_factors.append("ការបង្ខំឱ្យផ្ទេរប្រាក់ ឬសុំលេខកូដ OTP (Money Transfer / OTP Request)")
 
         # Check 4: Phishing Links or URLs
         urls = re.findall(r'https?://[^\s]+', text)
         if urls:
             score += 15
-            threat_factors.append(f"មានប្រកបដោយតំណភ្ជាប់ (Links Detected): {len(urls)} URLs")
+            threat_factors.append(f"មានប្រកបដោយតំណភ្ជាប់ (Phishing Links Detected): {len(urls)} URLs")
 
         # Check 5: Common Scam Tricks (Lottery, Free Money, Crypto, Telegram Job)
         scam_tricks = ["winner", "claim", "free", "guaranteed profit", "job", "invest", "ឈ្នះរង្វាន់", "ចំណេញច្រើន", "ការងារ", "វិនិយោគ"]
         detected_tricks = [st for st in scam_tricks if st in text_lower]
         if detected_tricks:
             score += 20
-            threat_factors.append(f"ល្បិចបោកប្រាស់ទូទៅ (Scam Tricks): {', '.join(detected_tricks)}")
+            threat_factors.append("ល្បិចបោកប្រាស់ទូទៅ (Scam Pattern Detected)")
 
         # Determine Category, Risk Level, and Actionable Steps
         if score >= 65:
             risk_level = "DANGEROUS"
-            risk_badge = "🔴 គ្រោះថ្នាក់ខ្លាំង (DANGEROUS SCAM)"
-            category = "Bank Impersonation / Forced Transfer Scam" if detected_banks else "Cyber Scam & Threat"
+            risk_badge = "🔴 **គ្រោះថ្នាក់ខ្លាំង (Malware / Financial Scam)**"
+            category = "Bank Impersonation / Forced Transfer Scam"
             summary_kh = "សារនេះមានទម្រង់ជាការបោកប្រាស់ ក្លែងបន្លំធនាគារ ឬបង្ខំឱ្យផ្ទេរប្រាក់ប្រកបដោយគ្រោះថ្នាក់!"
-            summary_en = "This message exhibits high indicators of banking impersonation, threat, or financial scam!"
-            recommendation = "⛔ កុំចុចតំណភ្ជាប់ កុំផ្ទេរប្រាក់ ឬប្រគល់លេខកូដ OTP ឱ្យសោះ!"
+            summary_en = "This message exhibits high indicators of financial scam or coercion!"
+            recommendation = "កុំទាញយក ឬចែករំលែកសារនេះ ព្រោះវាអាចបង្កគ្រោះថ្នាក់ដល់ទិន្នន័យរបស់អ្នក។"
             action_steps = [
-                "⛔ **១. ហាមចុចបើក:** ហាមចុចលើតំណភ្ជាប់ (Link) ឬបើកឯកសារនេះដាច់ខាត!",
-                "🔒 **២. រក្សាសម្ងាត់:** ហាមផ្ញើលេខកូដ OTP, ពាក្យសម្ងាត់ ឬព័ត៌មានធនាគារឱ្យសោះ",
-                "🚫 **៣. ប្លុក & Report:** ចុច Block និង Report គណនីសង្ស័យនេះក្នុង Telegram ភ្លាមៗ",
-                "🏦 **៤. ជួបធនាគារផ្លូវការ:** ប្រសិនបើបានផ្ញើព័ត៌មាន សូមប្រញាប់ទាក់ទង Hotline ធនាគារផ្លូវការដើម្បីបិទគណនី"
+                "⛔ កុំចុចបើក ឬដំណើរការតំណភ្ជាប់/ឯកសារនេះ។",
+                "🚫 Block និង Report គណនីដែលបានផ្ញើ។",
+                "🗑️ លុបសារ និងឯកសារនេះចេញភ្លាមៗ។"
             ]
+
         elif score >= 35:
             risk_level = "SUSPICIOUS"
             risk_badge = "🟡 សង្ស័យ (SUSPICIOUS)"

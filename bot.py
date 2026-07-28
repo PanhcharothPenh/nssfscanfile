@@ -35,13 +35,15 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "🛡️ **NSSF Security Scan គឺជា AI Bot**\n\n"
         "ដែលជួយការពារអ្នកពីការបោកប្រាស់តាមប្រព័ន្ធអ៊ីនធឺណិត។ គ្រាន់តែផ្ញើតំណភ្ជាប់ (Link) សារ ឬឯកសារដែលអ្នកសង្ស័យមកកាន់ Bot នោះវានឹងវិភាគរកហានិភ័យរួចផ្តល់ការណែនាំដល់អ្នកភ្លាមៗ។\n\n"
         "✨ **លក្ខណៈពិសេសរបស់ Bot (Bot Features):**\n"
-        "1️⃣ **វិភាគខ្លឹមសារសារ (AI Scam Detection):** ស្គាល់ភាសាគំរាមកំហែង, ការក្លែងបន្លំជាធនាគារ (ABA, Acleda, Wing) និងការបង្ខំឱ្យផ្ទេរប្រាក់\n"
+        "1️⃣ **វិភាគខ្លឹមសារសារ (AI Scam Detection):** ស្គាល់ភាសាគំរាមកំហែង, ការក្លែងបន្លំធនាគារ និងការបង្ខំឱ្យផ្ទេរប្រាក់\n"
         "2️⃣ **ស្កេន VirusTotal v3 (Link & File Scan):** ពិនិត្យមើល URL និងឯកសារប្រភេទ `.apk`, `.exe`, `.zip`, `.z`, `.7z`, `.pdf`\n"
         "3️⃣ **ប្រព័ន្ធការពារ Group Chat:** ទាញ Bot ចូល Group ដើម្បីការពារសមាជិកទាំងអស់ដោយស្វ័យប្រវត្តិ 24/7\n\n"
         "🔍 **Commands:**\n"
         "/scan `<text or url>` - ស្កេនសារ ឬ តំណភ្ជាប់ដោយផ្ទាល់\n"
         "/status - ពិនិត្យមើលស្ថានភាពសុវត្ថិភាព\n"
-        "/help - មគ្គុទ្ទេសក៍ប្រើប្រាស់"
+        "/help - មគ្គុទ្ទេសក៍ និងរបៀបប្រើប្រាស់\n\n"
+        "--- \n"
+        "រៀបចំដោយ៖ ការិយាល័យសុវត្ថិភាពបច្ចេកវិទ្យាព័ត៍មាន"
     )
 
     banner_path = os.path.join(os.path.dirname(__file__), "static", "images", "welcome_banner.jpg")
@@ -56,7 +58,6 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(welcome_caption, parse_mode="Markdown")
 
 
-
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     /help command handler.
@@ -64,10 +65,13 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     help_text = (
         "❓ **មគ្គុទ្ទេសក៍ប្រើប្រាស់ប្រព័ន្ធសុវត្ថិភាព (Help Guide)**\n\n"
         "• **ផ្ញើសារ ឬឯកសារសង្ស័យ:** Forward សារ ចម្លងតំណភ្ជាប់ (Link) ឬផ្ញើឯកសារទៅកាន់ Bot ដោយផ្ទាល់ ដោយមិនបាច់ចុចបើកវាជាមុនឡើយ។\n"
-        "• **ស្កេនតំណភ្ជាប់ & ឯកសារ (VirusTotal v3):** Bot ពិនិត្យមើល URL និងឯកសារ APK, EXE, ZIP, PDF ដែលជនខិលខូចនិយមប្រើ។\n"
-        "• **ប្រព័ន្ធការពារ Group Chat:** បន្ថែម Bot ចូលក្នុង Group ដើម្បីការពារសមាជិកទាំងអស់ពីសារបោកប្រាស់ និង Malware ភ្លាមៗ។"
+        "• **ស្កេនតំណភ្ជាប់ & ឯកសារ (VirusTotal v3):** Bot ពិនិត្យមើល URL និងឯកសារ APK, EXE, ZIP, Z, 7Z, PDF ដែលជនខិលខូចនិយមប្រើ។\n"
+        "• **ប្រព័ន្ធការពារ Group Chat:** បន្ថែម Bot ចូលក្នុង Group ដើម្បីការពារសមាជិកទាំងអស់ពីសារបោកប្រាស់ និង Malware ភ្លាមៗ។\n\n"
+        "--- \n"
+        "រៀបចំដោយ៖ ការិយាល័យសុវត្ថិភាពបច្ចេកវិទ្យាព័ត៍មាន"
     )
     await update.message.reply_text(help_text, parse_mode="Markdown")
+
 
 async def status_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
@@ -217,7 +221,9 @@ async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"📁 **ឈ្មោះឯកសារ៖** `{filename}`{size_note}\n"
             f"🏷️ **ស្ថានភាព៖** {badge}\n\n"
             f"⚠️ **សូមអនុវត្ត៖**\n" + "\n".join(action_steps) + "\n\n"
-            f"💡 **ការណែនាំ៖** {rec}"
+            f"💡 **ការណែនាំ៖** {rec}\n\n"
+            f"---\n"
+            f"រៀបចំដោយ៖ ការិយាល័យសុវត្ថិភាពបច្ចេកវិទ្យាព័ត៍មាន"
         )
 
         await progress_msg.edit_text(report_text, parse_mode="Markdown")
@@ -232,9 +238,12 @@ async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"⚠️ **សូមអនុវត្ត៖**\n"
             f"⚠️ កុំប្រញាប់បើក ឬដំណើរការឯកសារនេះ។\n"
             f"🔍 ផ្ទៀងផ្ទាត់ប្រភពអ្នកផ្ញើឱ្យបានច្បាស់លាស់។\n\n"
-            f"💡 **ការណែនាំ៖** សូមផ្ទៀងផ្ទាត់ប្រភពឱ្យបានច្បាស់លាស់មុននឹងបើកឯកសារនេះ។"
+            f"💡 **ការណែនាំ៖** សូមផ្ទៀងផ្ទាត់ប្រភពឱ្យបានច្បាស់លាស់មុននឹងបើកឯកសារនេះ。\n\n"
+            f"---\n"
+            f"រៀបចំដោយ៖ ការិយាល័យសុវត្ថិភាពបច្ចេកវិទ្យាព័ត៍មាន"
         )
         await progress_msg.edit_text(fallback_msg, parse_mode="Markdown")
+
 
 
 def format_security_report(ai_report: dict, vt_reports: list) -> str:
@@ -267,9 +276,12 @@ def format_security_report(ai_report: dict, vt_reports: list) -> str:
         f"{factors_str}"
         f"{vt_str}"
         f"{actions_str}\n\n"
-        f"💡 **ការណែនាំ៖** {rec}"
+        f"💡 **ការណែនាំ៖** {rec}\n\n"
+        f"---\n"
+        f"រៀបចំដោយ៖ ការិយាល័យសុវត្ថិភាពបច្ចេកវិទ្យាព័ត៍មាន"
     )
     return report
+
 
 
 
@@ -282,13 +294,16 @@ async def post_init(app: Application):
     pre_start_guideline = (
         "🛡️ NSSF Security Scan - AI Security Bot\n\n"
         "មគ្គុទ្ទេសក៍ និងរបៀបប្រើប្រាស់៖\n"
-        "Bot នេះជួយការពារអ្នកពីការបោកប្រាស់ Phishing, ការក្លែងបន្លំជាធនាគារ (ABA, Acleda, Wing), សារគំរាមកំហែង និងមេរោគ (Malware)!\n\n"
+        "Bot នេះជួយការពារអ្នកពីការបោកប្រាស់ Phishing, ការក្លែងបន្លំធនាគារ, សារគំរាមកំហែង និងមេរោគ (Malware)!\n\n"
         "✨ របៀបប្រើប្រាស់ (How to Use):\n"
         "1️⃣ Forward សារ ឬចម្លងតំណភ្ជាប់ (Link) សង្ស័យមកកាន់ Bot\n"
         "2️⃣ ផ្ញើឯកសារ (.apk, .exe, .zip, .z, .7z, .pdf) ដើម្បីស្កេនមេរោគ\n"
         "3️⃣ ទាញ Bot ចូល Group Chat ដើម្បីការពារសមាជិកទាំងអស់ ២៤/៧\n\n"
-        "👉 ចុចប៊ូតុង START ខាងក្រោមដើម្បីចាប់ផ្តើមប្រើប្រាស់!"
+        "👉 ចុចប៊ូតុង START ខាងក្រោមដើម្បីចាប់ផ្តើមប្រើប្រាស់!\n\n"
+        "--- \n"
+        "រៀបចំដោយ៖ ការិយាល័យសុវត្ថិភាពបច្ចេកវិទ្យាព័ត៍មាន"
     )
+
 
     short_desc = "NSSF Security Scan - AI Bot ស្កេន និងការពារសារ, Link និង ឯកសារសង្ស័យ"
 
