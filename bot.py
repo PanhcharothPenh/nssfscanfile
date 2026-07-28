@@ -29,10 +29,10 @@ vt_scanner = VirusTotalScanner()
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
-    /start command handler - Explains the bot features in Khmer and English matching the custom branding layout.
+    /start command handler for NSSF Security Scan Bot.
     """
     welcome_caption = (
-        "🛡️ **Broryat គឺជា AI Bot**\n\n"
+        "🛡️ **NSSF Security Scan គឺជា AI Bot**\n\n"
         "ដែលជួយការពារអ្នកពីការបោកប្រាស់តាមប្រព័ន្ធអ៊ីនធឺណិត។ គ្រាន់តែផ្ញើតំណភ្ជាប់ (Link) សារ ឬឯកសារដែលអ្នកសង្ស័យមកកាន់ Bot នោះវានឹងវិភាគរកហានិភ័យរួចផ្តល់ការណែនាំដល់អ្នកភ្លាមៗ។\n\n"
         "✨ **លក្ខណៈពិសេសរបស់ Bot (Bot Features):**\n"
         "1️⃣ **វិភាគខ្លឹមសារសារ (AI Scam Detection):** ស្គាល់ភាសាគំរាមកំហែង, ការក្លែងបន្លំជាធនាគារ (ABA, Acleda, Wing) និងការបង្ខំឱ្យផ្ទេរប្រាក់\n"
@@ -41,8 +41,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "🔍 **Commands:**\n"
         "/scan `<text or url>` - ស្កេនសារ ឬ តំណភ្ជាប់ដោយផ្ទាល់\n"
         "/status - ពិនិត្យមើលស្ថានភាពសុវត្ថិភាព\n"
-        "/help - មគ្គុទ្ទេសក៍ប្រើប្រាស់\n\n"
-        "📞 **ទំនាក់ទំនង៖** 097 271 6722 និង 071 677 6979"
+        "/help - មគ្គុទ្ទេសក៍ប្រើប្រាស់"
     )
 
     banner_path = os.path.join(os.path.dirname(__file__), "static", "images", "welcome_banner.jpg")
@@ -55,6 +54,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
     else:
         await update.message.reply_text(welcome_caption, parse_mode="Markdown")
+
 
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
