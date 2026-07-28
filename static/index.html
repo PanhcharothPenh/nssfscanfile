@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="km">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Security SOC Scan - AI Message & VirusTotal Scanner</title>
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+    <!-- Header -->
+    <header class="header">
+        <div class="brand">
+            <div class="brand-icon"><i class="fa-solid fa-shield-halved"></i></div>
+            <div class="brand-text">
+                <h1>Security SOC Scan</h1>
+                <p>AI Threat Verification & VirusTotal v3 Protection Engine</p>
+            </div>
+        </div>
+        <div class="live-badge">
+            <div class="pulse-dot"></div>
+            <span>SOC Live Protection Active</span>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- Telemetry Stats Cards -->
+        <div class="stats-grid">
+            <div class="stat-card total">
+                <div class="stat-header">
+                    <span>ចំនួនស្កេនសរុប (Total Scans)</span>
+                    <i class="fa-solid fa-radar"></i>
+                </div>
+                <div class="stat-value" id="stat-total">0</div>
+            </div>
+            <div class="stat-card dangerous">
+                <div class="stat-header">
+                    <span>សារ/ឯកសារគ្រោះថ្នាក់ (Dangerous)</span>
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                </div>
+                <div class="stat-value" id="stat-dangerous">0</div>
+            </div>
+            <div class="stat-card suspicious">
+                <div class="stat-header">
+                    <span>សារសង្ស័យ (Suspicious)</span>
+                    <i class="fa-solid fa-circle-exclamation"></i>
+                </div>
+                <div class="stat-value" id="stat-suspicious">0</div>
+            </div>
+            <div class="stat-card safe">
+                <div class="stat-header">
+                    <span>សារសុវត្ថិភាព (Safe)</span>
+                    <i class="fa-solid fa-circle-check"></i>
+                </div>
+                <div class="stat-value" id="stat-safe">0</div>
+            </div>
+        </div>
+
+        <!-- Main Section: Interactive Simulator & Live Output -->
+        <div class="main-grid">
+            <!-- Left Card: Scan Test Simulator -->
+            <div class="card">
+                <div class="card-title">
+                    <i class="fa-solid fa-vial-virus" style="color: var(--accent-blue);"></i>
+                    <span>ឧបករណ៍ធ្វើតេស្តស្កេន (AI Threat Simulator)</span>
+                </div>
+                
+                <div class="form-group">
+                    <label>បញ្ចូលសារ, URL ឬសារដែល Forward (Paste Suspicious Message / Link):</label>
+                    <textarea id="input-text" rows="5" placeholder="ឧទាហរណ៍៖ ABA Bank Urgent Notification! គណនីរបស់អ្នកត្រូវបិទបណ្តោះអាសន្ន សូមប្រញាប់ចុច https://aba-bank-verify.com ដើម្បីផ្ទៀងផ្ទាត់លេខ OTP ឱ្យបានមុនម៉ោង 5..."></textarea>
+                </div>
+
+                <div class="preset-chips">
+                    <span class="chip" onclick="loadPreset('bank')">🏦 ធនាគារ (Bank Scam)</span>
+                    <span class="chip" onclick="loadPreset('threat')">⚠️ ការគំរាមកំហែង (Urgent Threat)</span>
+                    <span class="chip" onclick="loadPreset('apk')">📱 APK & Phishing Link</span>
+                    <span class="chip" onclick="loadPreset('safe')">✅ សារធម្មតា (Safe Msg)</span>
+                </div>
+
+                <br>
+                <div class="btn-group">
+                    <button class="btn btn-primary" onclick="simulateTextScan()">
+                        <i class="fa-solid fa-magnifying-glass-shield"></i>
+                        <span>វិភាគផ្ទៀងផ្ទាត់ (Scan Message)</span>
+                    </button>
+                </div>
+
+                <hr style="border-color: var(--border-color); margin: 1.5rem 0;">
+
+                <div class="form-group">
+                    <label>ឬ ស្កេនឯកសារ (.APK, .EXE, .ZIP, .7Z, .Z, .ISO, .PDF) តាម VirusTotal v3:</label>
+                    <input type="file" id="input-file" accept=".apk,.exe,.zip,.rar,.7z,.z,.tar,.gz,.iso,.img,.pdf,.scr,.vbs,.msi,.docm,.xlsm">
+                </div>
+
+                <button class="btn btn-secondary" style="width: 100%;" onclick="simulateFileScan()">
+                    <i class="fa-solid fa-file-shield"></i>
+                    <span>ស្កេនឯកសារ (Scan File Hash)</span>
+                </button>
+            </div>
+
+            <!-- Right Card: Live Report Display -->
+            <div class="card">
+                <div class="card-title">
+                    <i class="fa-solid fa-file-contract" style="color: var(--accent-purple);"></i>
+                    <span>លទ្ធផលនៃការវិភាគ (Live SOC Report)</span>
+                </div>
+
+                <div id="result-container" class="result-box">
+                    <div style="text-align: center; color: var(--text-muted);">
+                        <i class="fa-solid fa-shield" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.3;"></i>
+                        <p>បញ្ចូលសារ ឬ ជ្រើសរើសឯកសារ ដើម្បីស្កេនផ្ទៀងផ្ទាត់សុវត្ថិភាព</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Section: Scan Logs Table -->
+        <div class="card">
+            <div class="card-title">
+                <i class="fa-solid fa-list-check" style="color: var(--safe-green);"></i>
+                <span>ប្រវត្តិនៃការស្កេន និងកំណត់ហេតុ (Recent SOC Telemetry Logs)</span>
+            </div>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>កាលបរិច្ឆេទ (Time)</th>
+                            <th>ប្រភេទ (Type)</th>
+                            <th>ខ្លឹមសារសង្ខេប (Summary)</th>
+                            <th>កម្រិតហានិភ័យ (Risk Level)</th>
+                            <th>ពិន្ទុ (Score)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="logs-tbody">
+                        <tr>
+                            <td colspan="6" style="text-align: center; color: var(--text-muted);">កំពុងទាញយកទិន្នន័យ...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>

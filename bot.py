@@ -1,0 +1,259 @@
+import os
+import logging
+import asyncio
+from typing import Optional
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import (
+    Application,
+    CommandHandler,
+    MessageHandler,
+    ContextTypes,
+    filters
+)
+
+from config import TELEGRAM_BOT_TOKEN, DANGEROUS_EXTENSIONS
+from ai_analyzer import AIThreatAnalyzer
+from vt_scanner import VirusTotalScanner
+from database import log_scan_event, get_soc_stats
+
+# Configure Logging
+logging.basicConfig(
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    level=logging.INFO
+)
+logger = logging.getLogger(__name__)
+
+# Initialize Scanners
+ai_analyzer = AIThreatAnalyzer()
+vt_scanner = VirusTotalScanner()
+
+async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    /start command handler - Explains the bot features in Khmer and English.
+    """
+    welcome_text = (
+        "🛡️ **ប្រព័ន្ធសុវត្ថិភាពផ្ទៀងផ្ទាត់សារ & VirusTotal Scanner (Security SOC Scan)**\n\n"
+        "ស្វាគមន៍មកកាន់ Telegram Security Bot! Bot នេះជួយការពារអ្នក និង Group Chat ពីការបោកប្រាស់ Phishing, "
+        "ការក្លែងបន្លំធនាគារ (Bank Impersonation), ការបង្ខំឱ្យផ្ទេរប្រាក់ និងមេរោគ (Malware).\n\n"
+        "✨ **របៀបប្រើប្រាស់ (How to Use):**\n"
+        "1️⃣ **សារ/តំណភ្ជាប់ (Messages & Links):** Forward សារ ឬចម្លង URL ផ្ញើមកកាន់ Bot ដោយផ្ទាល់\n"
+        "2️⃣ **ឯកសារ (Dangerous Files):** ផ្ញើឯកសារប្រភេទ `.apk`, `.exe`, `.zip`, `.pdf` មក Bot ដើម្បីស្កេន VirusTotal v3\n"
+        "3️⃣ **ក្នុង Group Chat (Group Protection):** គ្រាន់តែទាញ Bot ចូលទៅក្នុង Group វានឹងស្កេននិងការពារសមាជិកស្វ័យប្រវត្តិ!\n\n"
+        "🔍 **Commands:**\n"
+        "/scan `<text or url>` - ស្កេនសារ ឬ តំណភ្ជាប់ដោយផ្ទាល់\n"
+        "/status - ពិនិត្យមើលស្ថានភាពសុវត្ថិភាព\n"
+        "/help - មគ្គុទ្ទេសក៍ប្រើប្រាស់"
+    )
+    await update.message.reply_text(welcome_text, parse_mode="Markdown")
+
+async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    /help command handler.
+    """
+    help_text = (
+        "❓ **មគ្គុទ្ទេសក៍ប្រើប្រាស់ប្រព័ន្ធសុវត្ថិភាព (Help Guide)**\n\n"
+        "• **ផ្ញើសារ ឬឯកសារសង្ស័យ:** Forward សារ ចម្លងតំណភ្ជាប់ (Link) ឬផ្ញើឯកសារទៅកាន់ Bot ដោយផ្ទាល់ ដោយមិនបាច់ចុចបើកវាជាមុនឡើយ។\n"
+        "• **ស្កេនតំណភ្ជាប់ & ឯកសារ (VirusTotal v3):** Bot ពិនិត្យមើល URL និងឯកសារ APK, EXE, ZIP, PDF ដែលជនខិលខូចនិយមប្រើ។\n"
+        "• **ប្រព័ន្ធការពារ Group Chat:** បន្ថែម Bot ចូលក្នុង Group ដើម្បីការពារសមាជិកទាំងអស់ពីសារបោកប្រាស់ និង Malware ភ្លាមៗ។"
+    )
+    await update.message.reply_text(help_text, parse_mode="Markdown")
+
+async def status_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    /status command handler - returns SOC stats.
+    """
+    stats = get_soc_stats()
+    status_text = (
+        "📊 **របាយការណ៍សុវត្ថិភាពប្រព័ន្ធ (SOC Security Telemetry)**\n\n"
+        f"• **ចំនួនស្កេនសរុប (Total Scans):** {stats['total_scans']}\n"
+        f"• **សារ/ឯកសារគ្រោះថ្នាក់ (Dangerous Threats):** 🔴 {stats['dangerous_count']}\n"
+        f"• **សារ/ឯកសារសង្ស័យ (Suspicious):** 🟡 {stats['suspicious_count']}\n"
+        f"• **សារសុវត្ថិភាព (Safe Messages):** 🟢 {stats['safe_count']}\n"
+        f"• **ឯកសារបានស្កេន (Files Scanned):** 📁 {stats['file_scans']}\n"
+        f"• **តំណភ្ជាប់បានស្កេន (URLs Scanned):** 🔗 {stats['url_scans']}\n\n"
+        "✅ **ប្រព័ន្ធកំពុងដំណើរការការពារ ២៤/៧**"
+    )
+    await update.message.reply_text(status_text, parse_mode="Markdown")
+
+async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Handles text messages, forwarded messages, and messages containing URLs.
+    """
+    if not update.message or not update.message.text:
+        return
+
+    chat_id = update.message.chat_id
+    chat_type = update.message.chat.type
+    sender_id = update.message.from_user.id if update.message.from_user else 0
+    text = update.message.text
+
+    # Analyze AI Scam & Threat patterns
+    ai_report = await ai_analyzer.analyze_message(text)
+
+    # If message contains URLs, scan them with VirusTotal
+    vt_reports = []
+    if ai_report.get("urls_found"):
+        for url in ai_report["urls_found"][:3]: # Limit to 3 URLs
+            vt_res = await vt_scanner.scan_url(url)
+            vt_reports.append(vt_res)
+
+    # Determine overall status
+    highest_risk = ai_report["risk_level"]
+    for vt in vt_reports:
+        if vt.get("status") == "DANGEROUS":
+            highest_risk = "DANGEROUS"
+            ai_report["risk_score"] = max(ai_report["risk_score"], 95)
+        elif vt.get("status") == "SUSPICIOUS" and highest_risk != "DANGEROUS":
+            highest_risk = "SUSPICIOUS"
+
+    # Log to Database
+    scan_type = "URL" if ai_report.get("urls_found") else "TEXT"
+    log_scan_event(
+        chat_id=chat_id,
+        chat_type=chat_type,
+        sender_id=sender_id,
+        scan_type=scan_type,
+        input_summary=text,
+        risk_level=highest_risk,
+        risk_score=ai_report["risk_score"],
+        threat_details=ai_report,
+        virustotal_details=vt_reports[0] if vt_reports else {}
+    )
+
+    # Respond if dangerous, suspicious, or if in private DM
+    if highest_risk in ["DANGEROUS", "SUSPICIOUS"] or chat_type == "private":
+        response_msg = format_security_report(ai_report, vt_reports)
+        await update.message.reply_text(response_msg, parse_mode="Markdown", disable_web_page_preview=True)
+
+async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Handles document uploads (.apk, .exe, .zip, .pdf, etc.) and performs VirusTotal v3 verification.
+    """
+    if not update.message or not update.message.document:
+        return
+
+    chat_id = update.message.chat_id
+    chat_type = update.message.chat.type
+    sender_id = update.message.from_user.id if update.message.from_user else 0
+    document = update.message.document
+    filename = document.file_name or "unknown_file"
+    file_ext = os.path.splitext(filename)[1].lower()
+
+    # Inform user that file scanning is in progress
+    progress_msg = await update.message.reply_text(
+        f"🔍 **កំពុងស្កេនឯកសារ:** `{filename}` តាមរយៈ VirusTotal v3...",
+        parse_mode="Markdown"
+    )
+
+    try:
+        # Download document header / bytes for SHA-256 analysis
+        tg_file = await context.bot.get_file(document.file_id)
+        file_bytes = await tg_file.download_as_bytearray()
+
+        # Perform VirusTotal File Hash Scan
+        vt_result = await vt_scanner.scan_file_hash(bytes(file_bytes), filename)
+        
+        status = vt_result.get("status", "SAFE")
+        risk_score = 90 if status == "DANGEROUS" else (60 if status == "SUSPICIOUS" else 10)
+
+        # Log event
+        log_scan_event(
+            chat_id=chat_id,
+            chat_type=chat_type,
+            sender_id=sender_id,
+            scan_type="FILE",
+            input_summary=f"File: {filename} ({file_ext})",
+            risk_level=status,
+            risk_score=risk_score,
+            threat_details={"filename": filename, "extension": file_ext, "description": DANGEROUS_EXTENSIONS.get(file_ext, "File")},
+            virustotal_details=vt_result
+        )
+
+        # Format Response
+        if status == "DANGEROUS":
+            badge = "🔴 ឯកសារគ្រោះថ្នាក់ (MALWARE / DANGEROUS FILE)"
+            rec = "⛔ **ហាមដំឡើង ឬចុចបើកឯកសារនេះដាច់ខាត!** វាអាចបង្កប់មេរោគ Ransomware ឬ Spyware!"
+        elif status == "SUSPICIOUS":
+            badge = "🟡 ឯកសារគួរឱ្យសង្ស័យ (SUSPICIOUS FILE)"
+            rec = "⚠️ ឯកសារប្រភេទនេះអាចមានហានិភ័យ សូមផ្ទៀងផ្ទាត់ប្រភពឱ្យបានច្បាស់លាស់។"
+        else:
+            badge = "🟢 ឯកសារមានសុវត្ថិភាព (SAFE FILE)"
+            rec = "✅ មិនបានរកឃើញមេរោគក្នុងឯកសារនេះឡើយ។"
+
+        report_text = (
+            f"🛡️ **លទ្ធផលស្កេនឯកសារ (File Security Report)**\n\n"
+            f"📁 **ឈ្មោះឯកសារ (File Name):** `{filename}`\n"
+            f"🏷️ **ស្ថានភាព (Status):** {badge}\n"
+            f"🔬 **VirusTotal Stats:** {vt_result.get('malicious_count', 0)} / {vt_result.get('total_engines', 70)} Engines Detected Malicious\n"
+            f"ℹ️ **ប្រភេទឯកសារ:** {vt_result.get('extension_description', '')}\n\n"
+            f"💡 **ការណែនាំ (Recommendation):**\n{rec}"
+        )
+
+        await progress_msg.edit_text(report_text, parse_mode="Markdown")
+
+    except Exception as e:
+        logger.error(f"Error scanning file {filename}: {e}")
+        await progress_msg.edit_text("❌ មានបញ្ហាក្នុងការស្កេនឯកសារ សូមសាកល្បងម្តងទៀត។")
+
+def format_security_report(ai_report: dict, vt_reports: list) -> str:
+    """
+    Format rich security alert response in Khmer and English.
+    """
+    badge = ai_report.get("risk_badge", "🟢 SAFE")
+    score = ai_report.get("risk_score", 0)
+    category = ai_report.get("category", "General")
+    summary_kh = ai_report.get("summary_kh", "")
+    rec = ai_report.get("recommendation", "")
+    action_steps = ai_report.get("action_steps", [])
+
+    factors_str = ""
+    if ai_report.get("threat_factors"):
+        factors_str = "\n📌 **កត្តាហានិភ័យដែលបានរកឃើញ (Threat Indicators):**\n" + "\n".join([f"• {f}" for f in ai_report["threat_factors"]])
+
+    vt_str = ""
+    if vt_reports:
+        vt_str = "\n\n🌐 **VirusTotal v3 Link Analysis:**\n"
+        for v in vt_reports:
+            vt_str += f"• URL: `{v.get('target', '')}` ➔ {v.get('status')} ({v.get('malicious_count', 0)}/70 engines flagged)\n"
+
+    actions_str = ""
+    if action_steps:
+        actions_str = "\n\n🛠️ **ជំហានអនុវត្តជាក់ស្តែង (Actionable Steps):**\n" + "\n".join([f"{step}" for step in action_steps])
+
+    report = (
+        f"🛡️ **លទ្ធផលផ្ទៀងផ្ទាត់សុវត្ថិភាព (AI Security Report)**\n\n"
+        f"🚨 **កម្រិតហានិភ័យ (Risk Level):** {badge} (Score: {score}/100)\n"
+        f"🏷️ **ប្រភេទសេនារីយ៉ូ (Category):** {category}\n\n"
+        f"📝 **ការវិភាគខ្លឹមសារ (Content Summary):**\n{summary_kh}"
+        f"{factors_str}"
+        f"{vt_str}"
+        f"{actions_str}\n\n"
+        f"💡 **ការណែនាំសុវត្ថិភាព (Recommendation):**\n{rec}"
+    )
+    return report
+
+
+def main():
+    """
+    Telegram Bot runner function.
+    """
+    if not TELEGRAM_BOT_TOKEN:
+        logger.warning("TELEGRAM_BOT_TOKEN is not configured in .env. Bot runner disabled.")
+        return
+
+    app = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
+
+    # Handlers
+    app.add_handler(CommandHandler("start", start_command))
+    app.add_handler(CommandHandler("help", help_command))
+    app.add_handler(CommandHandler("status", status_command))
+    app.add_handler(CommandHandler("scan", handle_message))
+    
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+    app.add_handler(MessageHandler(filters.Document.ALL, handle_document))
+
+    logger.info("Telegram Security Bot is starting polling...")
+    app.run_polling()
+
+if __name__ == "__main__":
+    main()
