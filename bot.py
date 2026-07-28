@@ -303,11 +303,8 @@ async def post_init(app: Application):
         "1️⃣ Forward សារ ឬចម្លងតំណភ្ជាប់ (Link) សង្ស័យមកកាន់ Bot\n"
         "2️⃣ ផ្ញើឯកសារ (.apk, .exe, .zip, .z, .7z, .pdf) ដើម្បីស្កេនមេរោគ\n"
         "3️⃣ ទាញ Bot ចូល Group Chat ដើម្បីការពារសមាជិកទាំងអស់ ២៤/៧\n\n"
-        "👉 ចុចប៊ូតុង START ខាងក្រោមដើម្បីចាប់ផ្តើមប្រើប្រាស់!\n\n"
-        "--- \n"
-        "រៀបចំដោយ៖ ការិយាល័យសុវត្ថិភាពបច្ចេកវិទ្យាព័ត៍មាន"
+        "👉 ចុចប៊ូតុង START ខាងក្រោមដើម្បីចាប់ផ្តើមប្រើប្រាស់!"
     )
-
 
     short_desc = "NSSF Security Scan - AI Bot ស្កេន និងការពារសារ, Link និង ឯកសារសង្ស័យ"
 
@@ -321,21 +318,10 @@ async def post_init(app: Application):
             BotCommand("status", "ពិនិត្យមើលស្ថានភាពប្រព័ន្ធសុវត្ថិភាព"),
             BotCommand("help", "មគ្គុទ្ទេសក៍ និងរបៀបប្រើប្រាស់")
         ])
-        
-        # Set Bot Profile Avatar to wallpaper image
-        profile_photo_path = os.path.join(os.path.dirname(__file__), "static", "images", "profile_photo.jpg")
-        if os.path.exists(profile_photo_path):
-            import httpx, json
-            url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/setMyProfilePhoto"
-            photo_obj = json.dumps({"type": "static", "photo": "attach://img_file"})
-            with open(profile_photo_path, "rb") as pf:
-                files = {"img_file": ("profile.jpg", pf, "image/jpeg")}
-                async with httpx.AsyncClient() as client:
-                    await client.post(url, data={"photo": photo_obj}, files=files)
-        
-        logger.info("Bot pre-start description popup guidelines, profile photo, and menu commands updated successfully.")
+        logger.info("Bot pre-start description popup guidelines and menu commands updated successfully.")
     except Exception as e:
-        logger.error(f"Error setting bot descriptions/profile photo: {e}")
+        logger.error(f"Error setting bot descriptions: {e}")
+
 
 
 def main():
