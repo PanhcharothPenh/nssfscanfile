@@ -217,12 +217,12 @@ async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"📁 **ឈ្មោះឯកសារ (FILE NAME):**\n`{filename}`\n\n"
             f"📦 **ទំហំឯកសារ (FILE SIZE):** `{round(file_size/(1024*1024), 2)} MB`\n"
             f"🏷️ **កម្រិតហានិភ័យ (STATUS):**\n{badge}\n\n"
-            f"🔬 **SECURITY ENGINE:**\n`{vt_result.get('provider', 'VirusTotal v3 Intelligence')}`\n"
-            f"ℹ️ **ប្រភេទឯកសារ:** {vt_result.get('extension_description', DANGEROUS_EXTENSIONS.get(file_ext, 'File'))}{size_note}\n\n"
+            f"ℹ️ **ប្រភេទឯកសារ (FILE TYPE):**\n{vt_result.get('extension_description', DANGEROUS_EXTENSIONS.get(file_ext, 'File'))}{size_note}\n\n"
             f"🛠️ **ជំហានអនុវត្តជាក់ស្តែង (ACTIONABLE STEPS):**\n" + "\n".join([f"{step}" for step in action_steps]) + "\n\n"
             f"═════════════════════════\n"
             f"💡 **ការណែនាំ (RECOMMENDATION):**\n{rec}"
         )
+
 
         await progress_msg.edit_text(report_text, parse_mode="Markdown")
 
