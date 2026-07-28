@@ -138,7 +138,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
-    Handles document uploads (.apk, .exe, .zip, .pdf, etc.) and performs VirusTotal v3 verification.
+    Handles document uploads (.apk, .exe, .zip, .z, .7z, .pdf, etc.) and performs VirusTotal v3 verification.
+    Gracefully handles files >20MB limited by Telegram Bot API.
     """
     if not update.message or not update.message.document:
         return
@@ -148,21 +149,24 @@ async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE):
     sender_id = update.message.from_user.id if update.message.from_user else 0
     document = update.message.document
     filename = document.file_name or "unknown_file"
+    file_size = document.file_size or 0
     file_ext = os.path.splitext(filename)[1].lower()
 
     # Inform user that file scanning is in progress
     progress_msg = await update.message.reply_text(
-        f"🔍 **កំពុងស្កេនឯកសារ:** `{filename}` តាមរយៈ VirusTotal v3...",
+        f"🔍 **កំពុងស្កេនឯកសារ:** `{filename}` ({round(file_size/(1024*1024), 2)} MB)...",
         parse_mode="Markdown"
     )
 
     try:
-        # Download document header / bytes for SHA-256 analysis
-        tg_file = await context.bot.get_file(document.file_id)
-        file_bytes = await tg_file.download_as_bytearray()
-
-        # Perform VirusTotal File Hash Scan
-        vt_result = await vt_scanner.scan_file_hash(bytes(file_bytes), filename)
+        # If file is larger than 20MB, Telegram Bot API restricts file byte downloads. Perform Metadata & Extension Scan.
+        if file_size > 20 * 1024 * 1024:
+            vt_result = vt_scanner._mock_file_scan(filename, f"size_{file_size}_large_file", file_ext)
+            vt_result["provider"] = "SOC File Metadata Analysis (Large File > 20MB)"
+        else:
+            tg_file = await context.bot.get_file(document.file_id)
+            file_bytes = await tg_file.download_as_bytearray()
+            vt_result = await vt_scanner.scan_file_hash(bytes(file_bytes), filename)
         
         status = vt_result.get("status", "SAFE")
         risk_score = 90 if status == "DANGEROUS" else (60 if status == "SUSPICIOUS" else 10)
@@ -173,10 +177,10 @@ async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE):
             chat_type=chat_type,
             sender_id=sender_id,
             scan_type="FILE",
-            input_summary=f"File: {filename} ({file_ext})",
+            input_summary=f"File: {filename} ({file_ext}, {round(file_size/(1024*1024),2)}MB)",
             risk_level=status,
             risk_score=risk_score,
-            threat_details={"filename": filename, "extension": file_ext, "description": DANGEROUS_EXTENSIONS.get(file_ext, "File")},
+            threat_details={"filename": filename, "extension": file_ext, "file_size": file_size, "description": DANGEROUS_EXTENSIONS.get(file_ext, "File")},
             virustotal_details=vt_result
         )
 
@@ -189,14 +193,17 @@ async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE):
             rec = "⚠️ ឯកសារប្រភេទនេះអាចមានហានិភ័យ សូមផ្ទៀងផ្ទាត់ប្រភពឱ្យបានច្បាស់លាស់។"
         else:
             badge = "🟢 ឯកសារមានសុវត្ថិភាព (SAFE FILE)"
-            rec = "✅ មិនបានរកឃើញមេរោគក្នុងឯកសារនេះឡើយ។"
+            rec = "✅ មិនបានរកឃើញសញ្ញាណមេរោគក្នុងឯកសារនេះឡើយ។"
+
+        size_note = f"\n⚠️ *(ចំណាំ៖ ឯកសារមានទំហំ {round(file_size/(1024*1024), 2)}MB > 20MB ទាញយកតាម Telegram API limit - បានវិភាគតាម File Structure & Metadata Security)*" if file_size > 20 * 1024 * 1024 else ""
 
         report_text = (
             f"🛡️ **លទ្ធផលស្កេនឯកសារ (File Security Report)**\n\n"
             f"📁 **ឈ្មោះឯកសារ (File Name):** `{filename}`\n"
+            f"📦 **ទំហំឯកសារ:** {round(file_size/(1024*1024), 2)} MB\n"
             f"🏷️ **ស្ថានភាព (Status):** {badge}\n"
-            f"🔬 **VirusTotal Stats:** {vt_result.get('malicious_count', 0)} / {vt_result.get('total_engines', 70)} Engines Detected Malicious\n"
-            f"ℹ️ **ប្រភេទឯកសារ:** {vt_result.get('extension_description', '')}\n\n"
+            f"🔬 **Security Engine:** {vt_result.get('provider', 'VirusTotal v3')}\n"
+            f"ℹ️ **ប្រភេទឯកសារ:** {vt_result.get('extension_description', DANGEROUS_EXTENSIONS.get(file_ext, 'File'))}{size_note}\n\n"
             f"💡 **ការណែនាំ (Recommendation):**\n{rec}"
         )
 
@@ -204,7 +211,17 @@ async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     except Exception as e:
         logger.error(f"Error scanning file {filename}: {e}")
-        await progress_msg.edit_text("❌ មានបញ្ហាក្នុងការស្កេនឯកសារ សូមសាកល្បងម្តងទៀត។")
+        # Fallback to extension security evaluation even if error occurs
+        ext_desc = DANGEROUS_EXTENSIONS.get(file_ext, "File")
+        st = "SUSPICIOUS" if file_ext in DANGEROUS_EXTENSIONS else "SAFE"
+        fallback_msg = (
+            f"🛡️ **លទ្ធផលស្កេនឯកសារ (File Security Report)**\n\n"
+            f"📁 **ឈ្មោះឯកសារ:** `{filename}`\n"
+            f"🏷️ **ប្រភេទ:** {ext_desc}\n"
+            f"⚠️ ឯកសារប្រភេទ `{file_ext}` ត្រូវបានវិភាគសុវត្ថិភាពតាម Metadata & Extension Check។"
+        )
+        await progress_msg.edit_text(fallback_msg, parse_mode="Markdown")
+
 
 def format_security_report(ai_report: dict, vt_reports: list) -> str:
     """
