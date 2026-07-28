@@ -274,6 +274,38 @@ def format_security_report(ai_report: dict, vt_reports: list) -> str:
 
 
 
+async def post_init(app: Application):
+    """
+    Set pre-start description popup card, short description, and menu commands.
+    Displays instructions on screen BEFORE user clicks START.
+    """
+    pre_start_guideline = (
+        "🛡️ NSSF Security Scan - AI Security Bot\n\n"
+        "មគ្គុទ្ទេសក៍ និងរបៀបប្រើប្រាស់៖\n"
+        "Bot នេះជួយការពារអ្នកពីការបោកប្រាស់ Phishing, ការក្លែងបន្លំជាធនាគារ (ABA, Acleda, Wing), សារគំរាមកំហែង និងមេរោគ (Malware)!\n\n"
+        "✨ របៀបប្រើប្រាស់ (How to Use):\n"
+        "1️⃣ Forward សារ ឬចម្លងតំណភ្ជាប់ (Link) សង្ស័យមកកាន់ Bot\n"
+        "2️⃣ ផ្ញើឯកសារ (.apk, .exe, .zip, .z, .7z, .pdf) ដើម្បីស្កេនមេរោគ\n"
+        "3️⃣ ទាញ Bot ចូល Group Chat ដើម្បីការពារសមាជិកទាំងអស់ ២៤/៧\n\n"
+        "👉 ចុចប៊ូតុង START ខាងក្រោមដើម្បីចាប់ផ្តើមប្រើប្រាស់!"
+    )
+
+    short_desc = "NSSF Security Scan - AI Bot ស្កេន និងការពារសារ, Link និង ឯកសារសង្ស័យ"
+
+    try:
+        await app.bot.set_my_description(description=pre_start_guideline)
+        await app.bot.set_my_short_description(short_description=short_desc)
+        from telegram import BotCommand
+        await app.bot.set_my_commands([
+            BotCommand("start", "ចាប់ផ្តើមប្រើប្រាស់ NSSF Security Bot"),
+            BotCommand("scan", "ស្កេនសារ ឬ តំណភ្ជាប់សង្ស័យ"),
+            BotCommand("status", "ពិនិត្យមើលស្ថានភាពប្រព័ន្ធសុវត្ថិភាព"),
+            BotCommand("help", "មគ្គុទ្ទេសក៍ និងរបៀបប្រើប្រាស់")
+        ])
+        logger.info("Bot pre-start description popup guidelines and menu commands updated successfully.")
+    except Exception as e:
+        logger.error(f"Error setting bot descriptions: {e}")
+
 def main():
     """
     Telegram Bot runner function.
@@ -282,7 +314,7 @@ def main():
         logger.warning("TELEGRAM_BOT_TOKEN is not configured in .env. Bot runner disabled.")
         return
 
-    app = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
+    app = Application.builder().token(TELEGRAM_BOT_TOKEN).post_init(post_init).build()
 
     # Handlers
     app.add_handler(CommandHandler("start", start_command))
@@ -298,3 +330,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
