@@ -6,7 +6,12 @@ from dotenv import load_dotenv
 load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent
-DB_PATH = os.getenv("DB_PATH", str(BASE_DIR / "soc_scan.db"))
+
+if os.getenv("VERCEL"):
+    DB_PATH = "/tmp/soc_scan.db"
+else:
+    DB_PATH = os.getenv("DB_PATH", str(BASE_DIR / "soc_scan.db"))
+
 
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
 VIRUSTOTAL_API_KEY = os.getenv("VIRUSTOTAL_API_KEY", "")

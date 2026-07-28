@@ -23,37 +23,41 @@ def init_db():
     if supabase_client:
         return
 
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
 
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS scan_logs (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-            chat_id TEXT,
-            chat_type TEXT,
-            sender_id TEXT,
-            scan_type TEXT,
-            input_summary TEXT,
-            risk_level TEXT,
-            risk_score INTEGER,
-            threat_details TEXT,
-            virustotal_details TEXT
-        )
-    """)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS scan_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                chat_id TEXT,
+                chat_type TEXT,
+                sender_id TEXT,
+                scan_type TEXT,
+                input_summary TEXT,
+                risk_level TEXT,
+                risk_score INTEGER,
+                threat_details TEXT,
+                virustotal_details TEXT
+            )
+        """)
 
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS group_settings (
-            chat_id TEXT PRIMARY KEY,
-            chat_title TEXT,
-            auto_scan_enabled INTEGER DEFAULT 1,
-            block_dangerous_files INTEGER DEFAULT 1,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        )
-    """)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS group_settings (
+                chat_id TEXT PRIMARY KEY,
+                chat_title TEXT,
+                auto_scan_enabled INTEGER DEFAULT 1,
+                block_dangerous_files INTEGER DEFAULT 1,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
 
-    conn.commit()
-    conn.close()
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        logger.warning(f"Could not initialize local SQLite database: {e}")
+
 
 def log_scan_event(chat_id: str, chat_type: str, sender_id: str, scan_type: str, 
                    input_summary: str, risk_level: str, risk_score: int, 
