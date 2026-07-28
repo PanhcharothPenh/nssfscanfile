@@ -318,9 +318,21 @@ async def post_init(app: Application):
             BotCommand("status", "ពិនិត្យមើលស្ថានភាពប្រព័ន្ធសុវត្ថិភាព"),
             BotCommand("help", "មគ្គុទ្ទេសក៍ និងរបៀបប្រើប្រាស់")
         ])
-        logger.info("Bot pre-start description popup guidelines and menu commands updated successfully.")
+        # Set Pre-Start Bot Profile Picture to wallpaper image
+        profile_photo_path = os.path.join(os.path.dirname(__file__), "static", "images", "profile_photo.jpg")
+        if os.path.exists(profile_photo_path):
+            import httpx, json
+            url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/setMyProfilePhoto"
+            photo_obj = json.dumps({"type": "static", "photo": "attach://img_file"})
+            with open(profile_photo_path, "rb") as pf:
+                files = {"img_file": ("profile.jpg", pf, "image/jpeg")}
+                async with httpx.AsyncClient() as client:
+                    await client.post(url, data={"photo": photo_obj}, files=files)
+
+        logger.info("Bot pre-start description popup guidelines, wallpaper profile picture, and menu commands updated successfully.")
     except Exception as e:
-        logger.error(f"Error setting bot descriptions: {e}")
+        logger.error(f"Error setting bot descriptions/profile photo: {e}")
+
 
 
 
