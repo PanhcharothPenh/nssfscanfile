@@ -29,22 +29,33 @@ vt_scanner = VirusTotalScanner()
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
-    /start command handler - Explains the bot features in Khmer and English.
+    /start command handler - Explains the bot features in Khmer and English matching the custom branding layout.
     """
-    welcome_text = (
-        "🛡️ **ប្រព័ន្ធសុវត្ថិភាពផ្ទៀងផ្ទាត់សារ & VirusTotal Scanner (Security SOC Scan)**\n\n"
-        "ស្វាគមន៍មកកាន់ Telegram Security Bot! Bot នេះជួយការពារអ្នក និង Group Chat ពីការបោកប្រាស់ Phishing, "
-        "ការក្លែងបន្លំធនាគារ (Bank Impersonation), ការបង្ខំឱ្យផ្ទេរប្រាក់ និងមេរោគ (Malware).\n\n"
-        "✨ **របៀបប្រើប្រាស់ (How to Use):**\n"
-        "1️⃣ **សារ/តំណភ្ជាប់ (Messages & Links):** Forward សារ ឬចម្លង URL ផ្ញើមកកាន់ Bot ដោយផ្ទាល់\n"
-        "2️⃣ **ឯកសារ (Dangerous Files):** ផ្ញើឯកសារប្រភេទ `.apk`, `.exe`, `.zip`, `.pdf` មក Bot ដើម្បីស្កេន VirusTotal v3\n"
-        "3️⃣ **ក្នុង Group Chat (Group Protection):** គ្រាន់តែទាញ Bot ចូលទៅក្នុង Group វានឹងស្កេននិងការពារសមាជិកស្វ័យប្រវត្តិ!\n\n"
+    welcome_caption = (
+        "🛡️ **Broryat គឺជា AI Bot**\n\n"
+        "ដែលជួយការពារអ្នកពីការបោកប្រាស់តាមប្រព័ន្ធអ៊ីនធឺណិត។ គ្រាន់តែផ្ញើតំណភ្ជាប់ (Link) សារ ឬឯកសារដែលអ្នកសង្ស័យមកកាន់ Bot នោះវានឹងវិភាគរកហានិភ័យរួចផ្តល់ការណែនាំដល់អ្នកភ្លាមៗ។\n\n"
+        "✨ **លក្ខណៈពិសេសរបស់ Bot (Bot Features):**\n"
+        "1️⃣ **វិភាគខ្លឹមសារសារ (AI Scam Detection):** ស្គាល់ភាសាគំរាមកំហែង, ការក្លែងបន្លំជាធនាគារ (ABA, Acleda, Wing) និងការបង្ខំឱ្យផ្ទេរប្រាក់\n"
+        "2️⃣ **ស្កេន VirusTotal v3 (Link & File Scan):** ពិនិត្យមើល URL និងឯកសារប្រភេទ `.apk`, `.exe`, `.zip`, `.z`, `.7z`, `.pdf`\n"
+        "3️⃣ **ប្រព័ន្ធការពារ Group Chat:** ទាញ Bot ចូល Group ដើម្បីការពារសមាជិកទាំងអស់ដោយស្វ័យប្រវត្តិ 24/7\n\n"
         "🔍 **Commands:**\n"
         "/scan `<text or url>` - ស្កេនសារ ឬ តំណភ្ជាប់ដោយផ្ទាល់\n"
         "/status - ពិនិត្យមើលស្ថានភាពសុវត្ថិភាព\n"
-        "/help - មគ្គុទ្ទេសក៍ប្រើប្រាស់"
+        "/help - មគ្គុទ្ទេសក៍ប្រើប្រាស់\n\n"
+        "📞 **ទំនាក់ទំនង៖** 097 271 6722 និង 071 677 6979"
     )
-    await update.message.reply_text(welcome_text, parse_mode="Markdown")
+
+    banner_path = os.path.join(os.path.dirname(__file__), "static", "images", "welcome_banner.jpg")
+    if os.path.exists(banner_path):
+        with open(banner_path, "rb") as photo_file:
+            await update.message.reply_photo(
+                photo=photo_file,
+                caption=welcome_caption,
+                parse_mode="Markdown"
+            )
+    else:
+        await update.message.reply_text(welcome_caption, parse_mode="Markdown")
+
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
