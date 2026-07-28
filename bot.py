@@ -292,8 +292,8 @@ def format_security_report(ai_report: dict, vt_reports: list) -> str:
 
 async def post_init(app: Application):
     """
-    Set pre-start description popup card, short description, and menu commands.
-    Displays instructions on screen BEFORE user clicks START.
+    Set pre-start description popup card, media photo banner, short description, and menu commands.
+    Displays instructions and wallpaper photo on screen BEFORE user clicks START.
     """
     pre_start_guideline = (
         "🛡️ NSSF Security Scan - AI Security Bot\n\n"
@@ -309,7 +309,20 @@ async def post_init(app: Application):
     short_desc = "NSSF Security Scan - AI Bot ស្កេន និងការពារសារ, Link និង ឯកសារសង្ស័យ"
 
     try:
-        await app.bot.set_my_description(description=pre_start_guideline)
+        import httpx, json
+        url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/setMyDescription"
+        photo_path = os.path.join(os.path.dirname(__file__), "static", "images", "profile_photo.jpg")
+        
+        if os.path.exists(photo_path):
+            photo_obj = json.dumps({"type": "static", "photo": "attach://photo_file"})
+            with open(photo_path, "rb") as pf:
+                files = {"photo_file": ("wallpaper.jpg", pf, "image/jpeg")}
+                data = {"description": pre_start_guideline, "photo": photo_obj}
+                async with httpx.AsyncClient() as client:
+                    await client.post(url, data=data, files=files)
+        else:
+            await app.bot.set_my_description(description=pre_start_guideline)
+
         await app.bot.set_my_short_description(short_description=short_desc)
         from telegram import BotCommand
         await app.bot.set_my_commands([
@@ -318,9 +331,10 @@ async def post_init(app: Application):
             BotCommand("status", "ពិនិត្យមើលស្ថានភាពប្រព័ន្ធសុវត្ថិភាព"),
             BotCommand("help", "មគ្គុទ្ទេសក៍ និងរបៀបប្រើប្រាស់")
         ])
-        logger.info("Bot pre-start description popup guidelines and menu commands updated successfully.")
+        logger.info("Bot pre-start description popup guidelines, media photo banner, and menu commands updated successfully.")
     except Exception as e:
         logger.error(f"Error setting bot descriptions: {e}")
+
 
 
 
