@@ -13,13 +13,17 @@ from database import log_scan_event, get_recent_scans, get_soc_stats
 
 app = FastAPI(title="Security SOC Scan API", version="1.0.0")
 
-# Mount Static Files
-static_dir = os.path.join(os.path.dirname(__file__), "static")
-os.makedirs(static_dir, exist_ok=True)
-app.mount("/static", StaticFiles(directory=static_dir), name="static")
+# Mount Static Files safely
+static_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
+if not os.path.exists(static_dir):
+    static_dir = os.path.join(os.getcwd(), "static")
+
+if os.path.exists(static_dir):
+    app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
 ai_analyzer = AIThreatAnalyzer()
 vt_scanner = VirusTotalScanner()
+
 
 class ScanTextRequest(BaseModel):
     text: str
