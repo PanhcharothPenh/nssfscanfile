@@ -294,7 +294,8 @@ async def post_init(app: Application):
     Displays instructions and wallpaper photo on screen BEFORE user clicks START.
     """
     pre_start_guideline = (
-        "🛡️ NSSF Security Scan - Security Bot\n\n"
+        "🛡️ NSSF Security Scan - Security Bot\n"
+        "🔒 ឯកជនភាព និងសុវត្ថិភាព (Privacy & Security)\n\n"
         "មគ្គុទ្ទេសក៍ និងរបៀបប្រើប្រាស់៖\n"
         "Bot នេះជួយការពារអ្នកពីការបោកប្រាស់ Phishing, ការក្លែងបន្លំធនាគារ, សារគំរាមកំហែង និងមេរោគ (Malware)!\n\n"
         "✨ របៀបប្រើប្រាស់ (How to Use):\n"
@@ -304,7 +305,8 @@ async def post_init(app: Application):
         "👉 ចុចប៊ូតុង START ខាងក្រោមដើម្បីចាប់ផ្តើមប្រើប្រាស់!"
     )
 
-    short_desc = "NSSF Security Scan - ស្កេន និងការពារសារ, Link និង ឯកសារសង្ស័យ"
+    short_desc = "🔒 ឯកជនភាព និងសុវត្ថិភាព | NSSF Security Scan - ស្កេន និងការពារសារ, Link និង ឯកសារសង្ស័យ"
+
 
     try:
         import httpx, json
