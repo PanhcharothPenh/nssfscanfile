@@ -6,12 +6,26 @@ from fastapi.responses import HTMLResponse, FileResponse, JSONResponse
 from pydantic import BaseModel
 from typing import Optional
 
-from config import HOST, PORT, DANGEROUS_EXTENSIONS
+from config import HOST, PORT, DANGEROUS_EXTENSIONS, TELEGRAM_BOT_TOKEN
 from ai_analyzer import AIThreatAnalyzer
 from vt_scanner import VirusTotalScanner
 from database import log_scan_event, get_recent_scans, get_soc_stats
+import bot
 
 app = FastAPI(title="Security SOC Scan API", version="1.0.0")
+
+# Initialize Telegram Application for 24/7 Webhook processing
+telegram_app = None
+if TELEGRAM_BOT_TOKEN:
+    from telegram import Update
+    from telegram.ext import Application, CommandHandler, MessageHandler, filters
+    telegram_app = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
+    telegram_app.add_handler(CommandHandler("start", bot.start_command))
+    telegram_app.add_handler(CommandHandler("help", bot.help_command))
+    telegram_app.add_handler(CommandHandler("status", bot.status_command))
+    telegram_app.add_handler(CommandHandler("scan", bot.handle_message))
+    telegram_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, bot.handle_message))
+    telegram_app.add_handler(MessageHandler(filters.Document.ALL, bot.handle_document))
 
 # Mount Static Files safely
 static_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
@@ -23,6 +37,7 @@ if os.path.exists(static_dir):
 
 ai_analyzer = AIThreatAnalyzer()
 vt_scanner = VirusTotalScanner()
+
 
 
 class ScanTextRequest(BaseModel):
@@ -131,5 +146,42 @@ async def api_scan_file(file: UploadFile = File(...)):
         "virustotal": vt_result
     }
 
+@app.post("/api/webhook")
+async def telegram_webhook(request: Request):
+    """
+    24/7 Telegram Serverless Cloud Webhook Endpoint hosted on Vercel.
+    Guarantees the bot stays online 24/7 without needing a local PC running!
+    """
+    if not telegram_app:
+        return JSONResponse({"status": "disabled", "message": "Bot token not configured"}, status_code=500)
+    
+    try:
+        data = await request.json()
+        from telegram import Update
+        update = Update.de_json(data, telegram_app.bot)
+        await telegram_app.initialize()
+        await telegram_app.process_update(update)
+        return {"status": "ok"}
+    except Exception as e:
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
+
+
+@app.get("/api/set_webhook")
+async def api_set_webhook(url: Optional[str] = None):
+    """
+    Helper endpoint to register Vercel 24/7 Webhook URL with Telegram API.
+    """
+    if not telegram_app:
+        return JSONResponse({"status": "disabled", "message": "Bot token not configured"}, status_code=500)
+    
+    target_url = url or "https://nssfscanfile.vercel.app/api/webhook"
+    try:
+        res = await telegram_app.bot.set_webhook(url=target_url)
+        return {"status": "success", "webhook_url": target_url, "result": res}
+    except Exception as e:
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
+
+
 if __name__ == "__main__":
     uvicorn.run("server:app", host=HOST, port=PORT, reload=True)
+
