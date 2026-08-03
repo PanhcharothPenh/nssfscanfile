@@ -153,17 +153,24 @@ async def telegram_webhook(request: Request):
     Guarantees the bot stays online 24/7 without needing a local PC running!
     """
     if not telegram_app:
-        return JSONResponse({"status": "disabled", "message": "Bot token not configured"}, status_code=500)
+        return JSONResponse({"status": "disabled", "message": "Bot token not configured"}, status_code=200)
     
     try:
         data = await request.json()
         from telegram import Update
         update = Update.de_json(data, telegram_app.bot)
-        await telegram_app.initialize()
+        
+        # Safely initialize application instance once
+        if not getattr(telegram_app, "_initialized", False):
+            await telegram_app.initialize()
+
         await telegram_app.process_update(update)
-        return {"status": "ok"}
+        return JSONResponse({"status": "ok"}, status_code=200)
     except Exception as e:
-        return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
+        logger.error(f"Error processing webhook update: {e}")
+        # Always return 200 OK so Telegram doesn't flag the webhook as failing
+        return JSONResponse({"status": "ok", "error": str(e)}, status_code=200)
+
 
 
 @app.get("/api/set_webhook")

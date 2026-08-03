@@ -143,7 +143,12 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Respond if dangerous, suspicious, or if in private DM
     if highest_risk in ["DANGEROUS", "SUSPICIOUS"] or chat_type == "private":
         response_msg = format_security_report(ai_report, vt_reports)
-        await update.message.reply_text(response_msg, parse_mode="Markdown", disable_web_page_preview=True)
+        try:
+            await update.message.reply_text(response_msg, parse_mode="Markdown", disable_web_page_preview=True)
+        except Exception as e:
+            logger.warning(f"Markdown reply failed ({e}), falling back to plain text")
+            await update.message.reply_text(response_msg, disable_web_page_preview=True)
+
 
 
 async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE):
