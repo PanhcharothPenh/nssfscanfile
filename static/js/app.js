@@ -41,14 +41,13 @@ async function fetchUsers() {
         const tbody = document.getElementById("users-tbody");
 
         if (!data.users || data.users.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-muted);">មិនទាន់មានប្រវត្តិអ្នកប្រើប្រាស់នៅឡើយ</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text-muted);">មិនទាន់មានប្រវត្តិអ្នកប្រើប្រាស់នៅឡើយ (No active users logged)</td></tr>';
             return;
         }
 
         tbody.innerHTML = data.users.map(u => `
             <tr>
-                <td><strong>${escapeHtml(u.user_name || 'User')}</strong></td>
-                <td><code style="color: var(--accent-blue);">${escapeHtml(u.sender_id)}</code></td>
+                <td><code style="color: var(--accent-blue); font-size: 0.9rem;">${escapeHtml(u.sender_id)}</code></td>
                 <td><span class="chip" style="font-size: 0.75rem; color: var(--accent-purple);">${escapeHtml(u.ip_address || 'Cloud IP')}</span></td>
                 <td><span class="chip" style="font-size: 0.75rem;">${escapeHtml(u.chat_type)}</span></td>
                 <td><strong>${u.scan_count} Scans</strong></td>
@@ -67,14 +66,14 @@ async function fetchLogs() {
         const tbody = document.getElementById("logs-tbody");
 
         if (!logs || logs.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--text-muted);">មិនទាន់មានប្រវត្តិស្កេននៅឡើយ</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--text-muted);">មិនទាន់មានប្រវត្តិស្កេននៅឡើយ (No scan logs yet)</td></tr>';
             return;
         }
 
         tbody.innerHTML = logs.map(log => `
             <tr>
                 <td>#${log.id}</td>
-                <td><strong>${escapeHtml(log.user_name || 'User')}</strong></td>
+                <td><code style="color: var(--accent-blue); font-size: 0.85rem;">${escapeHtml(log.sender_id || 'web_user')}</code></td>
                 <td><span class="chip" style="font-size: 0.75rem; color: var(--accent-purple);">${escapeHtml(log.ip_address || 'Cloud IP')}</span></td>
                 <td style="font-size: 0.8rem; color: var(--text-muted);">${log.timestamp}</td>
                 <td><span class="chip" style="font-size: 0.75rem;">${log.scan_type}</span></td>
@@ -87,6 +86,7 @@ async function fetchLogs() {
         console.error("Error fetching logs:", e);
     }
 }
+
 
 
 async function simulateTextScan() {
