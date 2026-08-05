@@ -140,6 +140,13 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         elif vt.get("status") == "SUSPICIOUS" and highest_risk != "DANGEROUS":
             highest_risk = "SUSPICIOUS"
 
+    user_obj = update.message.from_user
+    user_name = f"{user_obj.first_name or ''} {user_obj.last_name or ''}".strip() if user_obj else ""
+    if user_obj and user_obj.username:
+        user_name = f"{user_name} (@{user_obj.username})".strip()
+    if not user_name:
+        user_name = f"User_{sender_id}"
+
     # Log to Database
     scan_type = "URL" if ai_report.get("urls_found") else "TEXT"
     log_scan_event(
@@ -151,8 +158,10 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         risk_level=highest_risk,
         risk_score=ai_report["risk_score"],
         threat_details=ai_report,
-        virustotal_details=vt_reports[0] if vt_reports else {}
+        virustotal_details=vt_reports[0] if vt_reports else {},
+        user_name=user_name
     )
+
 
     # Respond if dangerous, suspicious, if in private DM, or if triggered via /scan command
     if highest_risk in ["DANGEROUS", "SUSPICIOUS"] or chat_type == "private" or is_command:
@@ -202,6 +211,13 @@ async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE):
         status = vt_result.get("status", "SAFE")
         risk_score = 90 if status == "DANGEROUS" else (60 if status == "SUSPICIOUS" else 10)
 
+        user_obj = update.message.from_user
+        user_name = f"{user_obj.first_name or ''} {user_obj.last_name or ''}".strip() if user_obj else ""
+        if user_obj and user_obj.username:
+            user_name = f"{user_name} (@{user_obj.username})".strip()
+        if not user_name:
+            user_name = f"User_{sender_id}"
+
         # Log event
         log_scan_event(
             chat_id=chat_id,
@@ -212,8 +228,10 @@ async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE):
             risk_level=status,
             risk_score=risk_score,
             threat_details={"filename": filename, "extension": file_ext, "file_size": file_size, "description": DANGEROUS_EXTENSIONS.get(file_ext, "File")},
-            virustotal_details=vt_result
+            virustotal_details=vt_result,
+            user_name=user_name
         )
+
 
         # Format Response matching user's exact Khmer template
         if status == "DANGEROUS":

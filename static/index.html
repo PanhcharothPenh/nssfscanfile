@@ -55,7 +55,15 @@
                 </div>
                 <div class="stat-value" id="stat-safe">0</div>
             </div>
+            <div class="stat-card users" style="border-color: rgba(79, 172, 254, 0.4);">
+                <div class="stat-header">
+                    <span>អ្នកប្រើប្រាស់សរុប (Active Users)</span>
+                    <i class="fa-solid fa-users" style="color: var(--accent-purple);"></i>
+                </div>
+                <div class="stat-value" id="stat-users" style="color: var(--accent-purple);">0</div>
+            </div>
         </div>
+
 
         <!-- Main Section: Interactive Simulator & Live Output -->
         <div class="main-grid">
@@ -115,6 +123,34 @@
             </div>
         </div>
 
+        <!-- User Telemetry & IP Tracking Table -->
+        <div class="card" style="margin-bottom: 2rem;">
+            <div class="card-title">
+                <i class="fa-solid fa-user-shield" style="color: var(--accent-purple);"></i>
+                <span>កំណត់ហេតុអ្នកប្រើប្រាស់ & IP Address (User Telemetry & IP Tracking Logs)</span>
+            </div>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ឈ្មោះអ្នកប្រើប្រាស់ (User Name)</th>
+                            <th>Telegram ID / Handle</th>
+                            <th>IP Address & Network</th>
+                            <th>ប្រភេទ Chat</th>
+                            <th>ចំនួនស្កេន (Scans)</th>
+                            <th>សកម្មភាពចុងក្រោយ (Last Active)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="users-tbody">
+                        <tr>
+                            <td colspan="6" style="text-align: center; color: var(--text-muted);">កំពុងទាញយកទិន្នន័យអ្នកប្រើប្រាស់...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
         <!-- Bottom Section: Scan Logs Table -->
         <div class="card">
             <div class="card-title">
@@ -127,6 +163,8 @@
                     <thead>
                         <tr>
                             <th>ID</th>
+                            <th>អ្នកប្រើប្រាស់ (User)</th>
+                            <th>IP Address</th>
                             <th>កាលបរិច្ឆេទ (Time)</th>
                             <th>ប្រភេទ (Type)</th>
                             <th>ខ្លឹមសារសង្ខេប (Summary)</th>
@@ -136,13 +174,14 @@
                     </thead>
                     <tbody id="logs-tbody">
                         <tr>
-                            <td colspan="6" style="text-align: center; color: var(--text-muted);">កំពុងទាញយកទិន្នន័យ...</td>
+                            <td colspan="8" style="text-align: center; color: var(--text-muted);">កំពុងទាញយកទិន្នន័យ...</td>
                         </tr>
                     </tbody>
                 </table>
             </div>
         </div>
     </div>
+
 
     <script src="/static/js/app.js"></script>
 </body>

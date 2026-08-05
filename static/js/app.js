@@ -1,11 +1,10 @@
 document.addEventListener("DOMContentLoaded", () => {
     fetchStats();
     fetchLogs();
+    fetchUsers();
 });
 
 const presets = {
-
-
     bank: "⚠️ ជូនដំណឹងបន្ទាន់ពីធនាគារ ABA Bank! គណនីរបស់អ្នកត្រូវបានផ្អាកបណ្តោះអាសន្ន ដោយសារបញ្ហាសុវត្ថិភាព។ សូមប្រញាប់ចុចតំណភ្ជាប់ https://aba-bank-verify.com/login ដើម្បីផ្ទៀងផ្ទាត់លេខកូដ OTP របស់អ្នកឱ្យបានមុនម៉ោង 5:00 ល្ងាច ដើម្បជៀសវាងការបិទគណនីរហូត!",
     threat: "⚠️ បទបញ្ជាបន្ទាន់ពីតុលាការ និងប៉ូលីស! គណនីរបស់អ្នកជាប់ពាក់ព័ន្ធករណីលាងលុយកខ្វក់។ ប្រសិនបើអ្នកមិនផ្ទេរប្រាក់ចំនួន $500 មកកាន់គណនីស៊ើបអង្កេត ក្នុងរយៈពេល 30 នាទីនេះទេ យើងនឹងចាត់វិធានការតាមផ្លូវច្បាប់ និងឃាត់ខ្លួនអ្នក!",
     apk: "📱 ទទួលបានកម្មវិធី Telegram VIP Special Edition ដោយឥតគិតថ្លៃ! ទាញយកឯកសារ Telegram_Security_Update.apk ឥឡូវនេះដើម្បីទទួលបាន Feature ពិសេសៗជាច្រើន https://telegram-apk-free.net/download",
@@ -27,8 +26,37 @@ async function fetchStats() {
         document.getElementById("stat-dangerous").innerText = data.dangerous_count || 0;
         document.getElementById("stat-suspicious").innerText = data.suspicious_count || 0;
         document.getElementById("stat-safe").innerText = data.safe_count || 0;
+        if (document.getElementById("stat-users")) {
+            document.getElementById("stat-users").innerText = data.total_users || 0;
+        }
     } catch (e) {
         console.error("Error fetching stats:", e);
+    }
+}
+
+async function fetchUsers() {
+    try {
+        const res = await fetch("/api/users");
+        const data = await res.json();
+        const tbody = document.getElementById("users-tbody");
+
+        if (!data.users || data.users.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-muted);">មិនទាន់មានប្រវត្តិអ្នកប្រើប្រាស់នៅឡើយ</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = data.users.map(u => `
+            <tr>
+                <td><strong>${escapeHtml(u.user_name || 'User')}</strong></td>
+                <td><code style="color: var(--accent-blue);">${escapeHtml(u.sender_id)}</code></td>
+                <td><span class="chip" style="font-size: 0.75rem; color: var(--accent-purple);">${escapeHtml(u.ip_address || 'Cloud IP')}</span></td>
+                <td><span class="chip" style="font-size: 0.75rem;">${escapeHtml(u.chat_type)}</span></td>
+                <td><strong>${u.scan_count} Scans</strong></td>
+                <td style="font-size: 0.8rem; color: var(--text-muted);">${escapeHtml(u.last_active)}</td>
+            </tr>
+        `).join("");
+    } catch (e) {
+        console.error("Error fetching users:", e);
     }
 }
 
@@ -39,16 +67,18 @@ async function fetchLogs() {
         const tbody = document.getElementById("logs-tbody");
 
         if (!logs || logs.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-muted);">មិនទាន់មានប្រវត្តិស្កេននៅឡើយ</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--text-muted);">មិនទាន់មានប្រវត្តិស្កេននៅឡើយ</td></tr>';
             return;
         }
 
         tbody.innerHTML = logs.map(log => `
             <tr>
                 <td>#${log.id}</td>
+                <td><strong>${escapeHtml(log.user_name || 'User')}</strong></td>
+                <td><span class="chip" style="font-size: 0.75rem; color: var(--accent-purple);">${escapeHtml(log.ip_address || 'Cloud IP')}</span></td>
                 <td style="font-size: 0.8rem; color: var(--text-muted);">${log.timestamp}</td>
                 <td><span class="chip" style="font-size: 0.75rem;">${log.scan_type}</span></td>
-                <td style="max-width: 300px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(log.input_summary)}</td>
+                <td style="max-width: 250px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(log.input_summary)}</td>
                 <td><span class="badge ${log.risk_level}">${log.risk_level}</span></td>
                 <td><strong>${log.risk_score}/100</strong></td>
             </tr>
@@ -57,6 +87,7 @@ async function fetchLogs() {
         console.error("Error fetching logs:", e);
     }
 }
+
 
 async function simulateTextScan() {
     const text = document.getElementById("input-text").value.trim();

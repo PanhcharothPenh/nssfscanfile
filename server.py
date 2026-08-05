@@ -10,15 +10,22 @@ from typing import Optional
 from config import HOST, PORT, DANGEROUS_EXTENSIONS, TELEGRAM_BOT_TOKEN
 from ai_analyzer import AIThreatAnalyzer
 from vt_scanner import VirusTotalScanner
-from database import log_scan_event, get_recent_scans, get_soc_stats
+from database import log_scan_event, get_recent_scans, get_soc_stats, get_user_analytics
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("ServerAPI")
 
 app = FastAPI(title="Security SOC Scan API", version="1.0.0")
 
+def get_client_ip(request: Request) -> str:
+    forwarded = request.headers.get("x-forwarded-for")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    return request.client.host if (request and request.client) else "127.0.0.1"
+
 # Lazy-loaded Telegram Application instance for Serverless compatibility
 _telegram_app = None
+
 
 def get_telegram_app():
     global _telegram_app
@@ -95,8 +102,15 @@ async def api_scans(limit: int = 50):
     """
     return get_recent_scans(limit=limit)
 
+@app.get("/api/users")
+async def api_users():
+    """
+    Get unique active users telemetry and IP tracking logs.
+    """
+    return get_user_analytics()
+
 @app.post("/api/scan/text")
-async def api_scan_text(payload: ScanTextRequest):
+async def api_scan_text(payload: ScanTextRequest, request: Request):
     """
     Analyze message content or links sent via Web Simulator.
     """
@@ -104,6 +118,7 @@ async def api_scan_text(payload: ScanTextRequest):
     if not text:
         raise HTTPException(status_code=400, detail="Text cannot be empty")
 
+    client_ip = get_client_ip(request)
     ai_report = await ai_analyzer.analyze_message(text)
 
     vt_reports = []
@@ -130,8 +145,11 @@ async def api_scan_text(payload: ScanTextRequest):
         risk_level=highest_risk,
         risk_score=ai_report["risk_score"],
         threat_details=ai_report,
-        virustotal_details=vt_reports[0] if vt_reports else {}
+        virustotal_details=vt_reports[0] if vt_reports else {},
+        user_name="Web Simulator User",
+        ip_address=client_ip
     )
+
 
     return {
         "status": "success",
@@ -141,10 +159,11 @@ async def api_scan_text(payload: ScanTextRequest):
     }
 
 @app.post("/api/scan/file")
-async def api_scan_file(file: UploadFile = File(...)):
+async def api_scan_file(request: Request, file: UploadFile = File(...)):
     """
     Analyze uploaded file (.apk, .exe, .zip, .pdf) using VirusTotal v3 API.
     """
+    client_ip = get_client_ip(request)
     filename = file.filename
     file_bytes = await file.read()
     file_ext = os.path.splitext(filename)[1].lower()
@@ -162,8 +181,11 @@ async def api_scan_file(file: UploadFile = File(...)):
         risk_level=status,
         risk_score=risk_score,
         threat_details={"filename": filename, "extension": file_ext, "description": DANGEROUS_EXTENSIONS.get(file_ext, "File")},
-        virustotal_details=vt_result
+        virustotal_details=vt_result,
+        user_name="Web Simulator User",
+        ip_address=client_ip
     )
+
 
     return {
         "status": "success",
