@@ -17,13 +17,23 @@ if SUPABASE_URL and SUPABASE_KEY:
         logger.error(f"Failed to initialize Supabase client: {e}")
 
 
+def cleanup_sample_data():
+    if supabase_client:
+        try:
+            supabase_client.table("scan_logs").delete().in_("sender_id", ["890308072", "548910234", "712903841"]).execute()
+        except Exception as e:
+            pass
+
 def init_db():
     """
-    Initialize SQLite tables locally (if not using Supabase).
+    Initialize SQLite tables locally.
     """
+    cleanup_sample_data()
+
     try:
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
+
 
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS scan_logs (
