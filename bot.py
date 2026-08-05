@@ -107,8 +107,22 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     sender_id = update.message.from_user.id if update.message.from_user else 0
     text = update.message.text
 
-    # Analyze Scam & Threat patterns
-    ai_report = await ai_analyzer.analyze_message(text)
+    is_command = text.startswith("/scan")
+    clean_text = text.replace("/scan", "").strip() if is_command else text
+
+    if is_command and not clean_text:
+        help_scan = (
+            "🔍 **របៀបស្កេនសារ ឬ តំណភ្ជាប់៖**\n\n"
+            "សូមបញ្ចូលសារ ឬ Link បន្ទាប់ពី Command `/scan`\n"
+            "*(ឧទាហរណ៍៖ `/scan https://example.com` ឬ Forward សារចូលក្នុង Chat)*\n\n"
+            "---\n"
+            "រៀបចំដោយ៖ ការិយាល័យសុវត្ថិភាពបច្ចេកវិទ្យាព័ត៍មាន"
+        )
+        await update.message.reply_text(help_scan, parse_mode="Markdown")
+        return
+
+    # Analyze Scam & Threat patterns on clean text
+    ai_report = await ai_analyzer.analyze_message(clean_text)
 
     # If message contains URLs, scan them
     vt_reports = []
@@ -133,21 +147,22 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         chat_type=chat_type,
         sender_id=sender_id,
         scan_type=scan_type,
-        input_summary=text,
+        input_summary=clean_text,
         risk_level=highest_risk,
         risk_score=ai_report["risk_score"],
         threat_details=ai_report,
         virustotal_details=vt_reports[0] if vt_reports else {}
     )
 
-    # Respond if dangerous, suspicious, or if in private DM
-    if highest_risk in ["DANGEROUS", "SUSPICIOUS"] or chat_type == "private":
+    # Respond if dangerous, suspicious, if in private DM, or if triggered via /scan command
+    if highest_risk in ["DANGEROUS", "SUSPICIOUS"] or chat_type == "private" or is_command:
         response_msg = format_security_report(ai_report, vt_reports)
         try:
             await update.message.reply_text(response_msg, parse_mode="Markdown", disable_web_page_preview=True)
         except Exception as e:
             logger.warning(f"Markdown reply failed ({e}), falling back to plain text")
             await update.message.reply_text(response_msg, disable_web_page_preview=True)
+
 
 
 
