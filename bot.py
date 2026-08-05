@@ -124,12 +124,12 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Analyze Scam & Threat patterns on clean text
     ai_report = await ai_analyzer.analyze_message(clean_text)
 
-    # If message contains URLs, scan them
+    # If message contains URLs, scan them in parallel for maximum speed
     vt_reports = []
     if ai_report.get("urls_found"):
-        for url in ai_report["urls_found"][:3]:
-            vt_res = await vt_scanner.scan_url(url)
-            vt_reports.append(vt_res)
+        urls = ai_report["urls_found"][:3]
+        vt_reports = await asyncio.gather(*[vt_scanner.scan_url(url) for url in urls])
+
 
     # Determine overall status
     highest_risk = ai_report["risk_level"]
