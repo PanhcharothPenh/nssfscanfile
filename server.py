@@ -33,11 +33,13 @@ if not os.path.exists(static_dir):
     static_dir = os.path.join(os.getcwd(), "static")
 
 if os.path.exists(static_dir):
-    app.mount("/static", StaticFiles(directory=static_dir), name="static")
+    try:
+        app.mount("/static", StaticFiles(directory=static_dir), name="static")
+    except Exception:
+        pass
 
 ai_analyzer = AIThreatAnalyzer()
 vt_scanner = VirusTotalScanner()
-
 
 
 class ScanTextRequest(BaseModel):
@@ -47,12 +49,34 @@ class ScanTextRequest(BaseModel):
 @app.get("/", response_class=HTMLResponse)
 async def serve_dashboard():
     """
-    Serve main Web SOC Security Dashboard.
+    Serve main Web SOC Security Dashboard with direct UTF-8 file reading.
     """
-    index_path = os.path.join(static_dir, "index.html")
-    if os.path.exists(index_path):
-        return FileResponse(index_path)
-    return HTMLResponse("<h1>Security SOC Scan API is Running. Index file initializing...</h1>")
+    try:
+        index_path = os.path.join(static_dir, "index.html")
+        if os.path.exists(index_path):
+            with open(index_path, "r", encoding="utf-8") as f:
+                content = f.read()
+            return HTMLResponse(content=content)
+    except Exception as e:
+        logger.error(f"Error serving index.html: {e}")
+    return HTMLResponse("<h1>Security SOC Scan API is Running.</h1>")
+
+@app.get("/static/css/{file_name}")
+async def serve_css(file_name: str):
+    file_path = os.path.join(static_dir, "css", file_name)
+    if os.path.exists(file_path):
+        with open(file_path, "r", encoding="utf-8") as f:
+            return HTMLResponse(content=f.read(), media_type="text/css")
+    return JSONResponse({"error": "CSS File not found"}, status_code=404)
+
+@app.get("/static/js/{file_name}")
+async def serve_js(file_name: str):
+    file_path = os.path.join(static_dir, "js", file_name)
+    if os.path.exists(file_path):
+        with open(file_path, "r", encoding="utf-8") as f:
+            return HTMLResponse(content=f.read(), media_type="application/javascript")
+    return JSONResponse({"error": "JS File not found"}, status_code=404)
+
 
 @app.get("/api/stats")
 async def api_stats():
