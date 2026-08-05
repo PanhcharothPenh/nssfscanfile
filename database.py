@@ -186,41 +186,82 @@ def get_soc_stats() -> Dict[str, Any]:
             logger.error(f"Supabase get_soc_stats error: {e}")
 
     # Fallback to SQLite
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
+def get_soc_stats() -> Dict[str, Any]:
+    """
+    Fetch aggregated metrics for SOC Telemetry Dashboard.
+    """
+    if supabase_client:
+        try:
+            total_scans = supabase_client.table("scan_logs").select("id", count="exact").execute().count or 0
+            dangerous = supabase_client.table("scan_logs").select("id", count="exact").eq("risk_level", "DANGEROUS").execute().count or 0
+            suspicious = supabase_client.table("scan_logs").select("id", count="exact").eq("risk_level", "SUSPICIOUS").execute().count or 0
+            safe = supabase_client.table("scan_logs").select("id", count="exact").eq("risk_level", "SAFE").execute().count or 0
+            files = supabase_client.table("scan_logs").select("id", count="exact").eq("scan_type", "FILE").execute().count or 0
+            urls = supabase_client.table("scan_logs").select("id", count="exact").eq("scan_type", "URL").execute().count or 0
+            
+            return {
+                "total_scans": total_scans,
+                "dangerous_count": dangerous,
+                "suspicious_count": suspicious,
+                "safe_count": safe,
+                "file_scans": files,
+                "url_scans": urls,
+                "protected_groups": 1
+            }
+        except Exception as e:
+            logger.error(f"Error fetching stats from Supabase: {e}")
 
-    cursor.execute("SELECT COUNT(*) FROM scan_logs")
-    total_scans = cursor.fetchone()[0]
+    try:
+        init_db()
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
 
-    cursor.execute("SELECT COUNT(*) FROM scan_logs WHERE risk_level = 'DANGEROUS'")
-    dangerous_count = cursor.fetchone()[0]
+        cursor.execute("SELECT COUNT(*) FROM scan_logs")
+        total_scans = cursor.fetchone()[0]
 
-    cursor.execute("SELECT COUNT(*) FROM scan_logs WHERE risk_level = 'SUSPICIOUS'")
-    suspicious_count = cursor.fetchone()[0]
+        cursor.execute("SELECT COUNT(*) FROM scan_logs WHERE risk_level = 'DANGEROUS'")
+        dangerous_count = cursor.fetchone()[0]
 
-    cursor.execute("SELECT COUNT(*) FROM scan_logs WHERE risk_level = 'SAFE'")
-    safe_count = cursor.fetchone()[0]
+        cursor.execute("SELECT COUNT(*) FROM scan_logs WHERE risk_level = 'SUSPICIOUS'")
+        suspicious_count = cursor.fetchone()[0]
 
-    cursor.execute("SELECT COUNT(*) FROM scan_logs WHERE scan_type = 'FILE'")
-    file_scans = cursor.fetchone()[0]
+        cursor.execute("SELECT COUNT(*) FROM scan_logs WHERE risk_level = 'SAFE'")
+        safe_count = cursor.fetchone()[0]
 
-    cursor.execute("SELECT COUNT(*) FROM scan_logs WHERE scan_type = 'URL'")
-    url_scans = cursor.fetchone()[0]
+        cursor.execute("SELECT COUNT(*) FROM scan_logs WHERE scan_type = 'FILE'")
+        file_scans = cursor.fetchone()[0]
 
-    cursor.execute("SELECT COUNT(*) FROM group_settings")
-    protected_groups = cursor.fetchone()[0]
+        cursor.execute("SELECT COUNT(*) FROM scan_logs WHERE scan_type = 'URL'")
+        url_scans = cursor.fetchone()[0]
 
-    conn.close()
+        cursor.execute("SELECT COUNT(*) FROM group_settings")
+        protected_groups = cursor.fetchone()[0]
 
-    return {
-        "total_scans": total_scans,
-        "dangerous_count": dangerous_count,
-        "suspicious_count": suspicious_count,
-        "safe_count": safe_count,
-        "file_scans": file_scans,
-        "url_scans": url_scans,
-        "protected_groups": protected_groups
-    }
+        conn.close()
 
-# Initialize tables on load
-init_db()
+        return {
+            "total_scans": total_scans,
+            "dangerous_count": dangerous_count,
+            "suspicious_count": suspicious_count,
+            "safe_count": safe_count,
+            "file_scans": file_scans,
+            "url_scans": url_scans,
+            "protected_groups": protected_groups
+        }
+    except Exception as e:
+        logger.warning(f"Error fetching local stats: {e}")
+        return {
+            "total_scans": 0,
+            "dangerous_count": 0,
+            "suspicious_count": 0,
+            "safe_count": 0,
+            "file_scans": 0,
+            "url_scans": 0,
+            "protected_groups": 0
+        }
+
+try:
+    init_db()
+except Exception:
+    pass
+

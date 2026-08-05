@@ -7,10 +7,17 @@ load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent
 
-if os.getenv("VERCEL"):
+if os.getenv("VERCEL") or os.getenv("VERCEL_ENV") or os.getenv("AWS_LAMBDA_FUNCTION_NAME"):
     DB_PATH = "/tmp/soc_scan.db"
 else:
-    DB_PATH = os.getenv("DB_PATH", str(BASE_DIR / "soc_scan.db"))
+    try:
+        if not os.access(str(BASE_DIR), os.W_OK):
+            DB_PATH = "/tmp/soc_scan.db"
+        else:
+            DB_PATH = os.getenv("DB_PATH", str(BASE_DIR / "soc_scan.db"))
+    except Exception:
+        DB_PATH = "/tmp/soc_scan.db"
+
 
 
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
