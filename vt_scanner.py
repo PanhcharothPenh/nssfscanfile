@@ -120,7 +120,7 @@ class VirusTotalScanner:
         api_key: Optional[str] = None,
         transport: Optional[httpx.AsyncBaseTransport] = None,
         poll_seconds: float = VT_POLL_SECONDS,
-        poll_interval: float = 4.0,
+        poll_interval: float = 15.0,
         rate_limiter: Optional[RateLimiter] = None,
     ):
         self.api_key = VIRUSTOTAL_API_KEY if api_key is None else api_key

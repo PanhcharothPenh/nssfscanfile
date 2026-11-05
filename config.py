@@ -54,7 +54,7 @@ MAX_URLS_PER_MESSAGE = _int_env("MAX_URLS_PER_MESSAGE", 5)
 USER_RATE_LIMIT_PER_MIN = _int_env("USER_RATE_LIMIT_PER_MIN", 6)
 VT_REQUESTS_PER_MIN = _int_env("VT_REQUESTS_PER_MIN", 4)            # VT free tier
 VT_TIMEOUT_SECONDS = _int_env("VT_TIMEOUT_SECONDS", 15)
-VT_POLL_SECONDS = _int_env("VT_POLL_SECONDS", 40)                   # max wait for a fresh analysis
+VT_POLL_SECONDS = _int_env("VT_POLL_SECONDS", 30)                   # max wait for a fresh analysis
 CACHE_TTL_SECONDS = _int_env("CACHE_TTL_SECONDS", 3600)
 CACHE_MAX_ITEMS = _int_env("CACHE_MAX_ITEMS", 2000)
 
