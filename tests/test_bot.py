@@ -64,3 +64,26 @@ def test_large_file_is_reported_as_not_scanned(monkeypatch):
     asyncio.run(bot.handle_document(upd, MagicMock()))
     text = progress.edit_text.await_args.args[0]
     assert "មិនទាន់ត្រូវបានស្កេន" in text and "🟢" not in text
+
+
+def test_pasted_hash_triggers_lookup(monkeypatch):
+    monkeypatch.setattr(bot, "alog_scan_event", AsyncMock())
+    seen = []
+
+    async def fake_lookup(digest):
+        seen.append(digest)
+        return {"status": "DANGEROUS", "scanned": True, "filename": "evil.rar", "malicious_count": 9,
+                "suspicious_count": 0, "total_engines": 70}
+
+    monkeypatch.setattr(bot.vt_scanner, "lookup_hash", fake_lookup)
+    upd, msg = make_update("a" * 64)
+    run_handler(upd)
+    assert seen == ["a" * 64]
+    assert "🔴" in msg.reply_text.await_args.args[0]
+
+
+def test_hash_command_without_valid_hash_shows_help():
+    upd, msg = make_update("/hash nothing")
+    bot.rate_limiter = bot.UserRateLimiter(100)
+    asyncio.run(bot.hash_command(upd, SimpleNamespace(args=["nothing"])))
+    assert "certutil" in msg.reply_text.await_args.args[0]

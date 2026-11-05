@@ -20,6 +20,15 @@ BADGES = {
 SCORES = {"DANGEROUS": 90, "SUSPICIOUS": 60, "SAFE": 10, "UNKNOWN": 0, "ANALYZING": 0}
 TELEGRAM_LIMIT = 4000
 
+HASH_HELP = (
+    "💡 <b>ពិនិត្យឯកសារធំបានយ៉ាងងាយ៖</b>\n"
+    "1️⃣ នៅលើ Windows បើក PowerShell ក្នុងថតឯកសារ ហើយវាយ៖\n"
+    "<code>certutil -hashfile ឈ្មោះឯកសារ SHA256</code>\n"
+    "(Mac/Linux៖ <code>shasum -a 256 ឈ្មោះឯកសារ</code>)\n"
+    "2️⃣ ចម្លងលេខវែង ៦៤ តួអក្សរ ហើយផ្ញើមកកាន់ Bot ត្រង់ៗ ឬប្រើ <code>/hash លេខនោះ</code>\n"
+    "⚠️ វិធីនេះឆ្លើយបានតែឯកសារដែល VirusTotal ធ្លាប់ឃើញ។"
+)
+
 
 class UserRateLimiter:
     """Allow at most ``limit`` actions per user per 60 seconds."""
@@ -81,7 +90,8 @@ def _vt_line(v: Dict[str, Any]) -> str:
     if v.get("scanned"):
         return (
             f"• <code>{target}</code> ➔ {_e(v.get('status'))} "
-            f"({v.get('malicious_count', 0)}/{v.get('total_engines', 0)} engines flagged)"
+            f"({v.get('malicious_count', 0)} malicious, {v.get('suspicious_count', 0)} suspicious "
+            f"of {v.get('total_engines', 0)} engines)"
         )
     label = "កំពុងវិភាគ" if v.get("status") == "ANALYZING" else "មិនទាន់ផ្ទៀងផ្ទាត់"
     return f"• <code>{target}</code> ➔ {label} — {_e(v.get('message', ''))}"
@@ -140,13 +150,21 @@ def format_file_report(filename: str, vt_result: Dict[str, Any]) -> str:
     ]
     if vt_result.get("scanned"):
         parts.append(
-            f"🔬 {vt_result.get('malicious_count', 0)}/{vt_result.get('total_engines', 0)} engines flagged"
-            f" · {vt_result.get('suspicious_count', 0)} suspicious"
+            f"🔬 {vt_result.get('malicious_count', 0)} malicious · {vt_result.get('suspicious_count', 0)} suspicious"
+            f" (of {vt_result.get('total_engines', 0)} engines)"
         )
         if vt_result.get("permalink"):
             parts.append(f"🔗 {_e(vt_result['permalink'])}")
     else:
-        if vt_result.get("message"):
+        if vt_result.get("too_large"):
+            parts.append("ℹ️ ឯកសារធំជាង 20MB Telegram មិនអនុញ្ញាតឱ្យ Bot ទាញយកបានទេ ដូច្នេះ <b>មិនទាន់បានស្កេន</b>។")
+            parts.append(HASH_HELP)
+        elif vt_result.get("not_found"):
+            parts.append(
+                "ℹ️ VirusTotal មិនធ្លាប់ឃើញឯកសារនេះទេ។ នេះ <b>មិនមែន</b>មានន័យថាវាសុវត្ថិភាពទេ "
+                "(អាចជាឯកសារថ្មី ឬត្រូវបានកែប្រែ)។"
+            )
+        elif vt_result.get("message"):
             parts.append(f"ℹ️ {_e(vt_result['message'])}")
         if vt_result.get("high_risk_file_type"):
             parts.append(

@@ -144,3 +144,16 @@ def test_rate_limiter_blocks_over_limit():
         return [await rl.acquire(max_wait=0) for _ in range(3)]
 
     assert run(go()) == [True, True, False]
+
+
+def test_hash_lookup_known_unknown_and_unconfigured():
+    h = "a" * 64
+    known = make_scanner(lambda req: httpx.Response(200, json=stats_body(6, 0)))
+    r = run(known.lookup_hash(h.upper()))
+    assert r["status"] == "DANGEROUS" and r["scanned"] and r["hash_lookup"]
+
+    missing = make_scanner(lambda req: httpx.Response(404))
+    r = run(missing.lookup_hash(h))
+    assert r["status"] == "UNKNOWN" and r["not_found"] is True  # never "SAFE"
+
+    assert run(VirusTotalScanner(api_key="").lookup_hash(h))["status"] == "UNKNOWN"

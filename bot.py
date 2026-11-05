@@ -28,6 +28,7 @@ from config import (
 from database import alog_scan_event, aget_soc_stats, apurge_old_scans
 from scan_service import (
     FOOTER,
+    HASH_HELP,
     SCORES,
     UserRateLimiter,
     format_file_report,
@@ -67,7 +68,7 @@ HELP = (
     "❓ <b>មគ្គុទ្ទេសក៍ប្រើប្រាស់</b>\n\n"
     "• <b>ផ្ញើសារ ឬតំណភ្ជាប់សង្ស័យ៖</b> Forward ឬចម្លងមកកាន់ Bot ដោយផ្ទាល់។\n"
     "• <b>ផ្ញើឯកសារ៖</b> ឯកសារទំហំក្រោម 20MB នឹងត្រូវស្កេនតាម VirusTotal។ "
-    "ឯកសារធំជាង 20MB មិនអាចស្កេនបានទេ។\n"
+    "ឯកសារធំជាង 20MB មិនអាចស្កេនផ្ទាល់បានទេ ប៉ុន្តែអាចផ្ញើ <code>/hash</code> (SHA-256 របស់ឯកសារ) ដើម្បីពិនិត្យ។\n"
     "• <b>Group Chat៖</b> Bot ព្រមានតែពេលរកឃើញសារ ឬឯកសារដែលគួរឱ្យសង្ស័យប៉ុណ្ណោះ។\n"
     "• <b>ចំណាំ៖</b> លទ្ធផល «មិនឃើញសញ្ញាគ្រោះថ្នាក់» មិនមែនជាការធានាថាសុវត្ថិភាព ១០០% ទេ។\n"
     "• <b>លទ្ធផលខុស?</b> ប្រើ /report ដើម្បីជូនដំណឹង។\n\n"
@@ -177,6 +178,37 @@ async def report_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 # --- scanning handlers -----------------------------------------------------------
+HASH_RE = re.compile(r"[a-fA-F0-9]{32}|[a-fA-F0-9]{40}|[a-fA-F0-9]{64}")
+
+
+async def _hash_lookup(update: Update, digest: str):
+    """Look a file hash up on VirusTotal (works for files of any size)."""
+    msg = update.message
+    if await _too_fast(update):
+        return
+    result = await vt_scanner.lookup_hash(digest)
+    status = result.get("status", "UNKNOWN")
+    await alog_scan_event(
+        chat_id=msg.chat_id, chat_type=msg.chat.type, sender_id=msg.from_user.id if msg.from_user else 0,
+        scan_type="FILE", input_summary=f"Hash: {digest.lower()}", risk_level=status,
+        risk_score=SCORES.get(status, 0), threat_details={"hash": digest.lower()},
+        virustotal_details=result, user_name=_user_name(msg),
+    )
+    await msg.reply_text(format_file_report(result.get("filename", digest), result),
+                         parse_mode=HTML, disable_web_page_preview=True)
+
+
+async def hash_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    arg = (context.args[0] if context.args else "").strip()
+    if not HASH_RE.fullmatch(arg):
+        await update.message.reply_text(
+            "សូមសរសេរ <code>/hash</code> តាមដោយលេខ hash (SHA-256 / SHA-1 / MD5) របស់ឯកសារ។\n\n" + HASH_HELP,
+            parse_mode=HTML,
+        )
+        return
+    await _hash_lookup(update, arg)
+
+
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Text, captions and /scan."""
     msg = update.message
@@ -187,6 +219,10 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = _strip_command(raw) if is_command else raw
     chat_type = msg.chat.type
     in_group = chat_type in GROUP_TYPES
+
+    if HASH_RE.fullmatch(text.strip()):
+        await _hash_lookup(update, text.strip())
+        return
 
     if is_command and not text and not _message_urls(msg):
         await msg.reply_text(
@@ -292,6 +328,7 @@ async def post_init(app: Application):
         await app.bot.set_my_short_description("🔒 ស្កេន និងការពារសារ តំណភ្ជាប់ ឯកសារបោកប្រាស់")
         await app.bot.set_my_commands([
             BotCommand("scan", "🔍 ស្កេនសារ ឬតំណភ្ជាប់សង្ស័យ"),
+            BotCommand("hash", "🔑 ពិនិត្យឯកសារធំតាម hash"),
             BotCommand("report", "📝 រាយការណ៍លទ្ធផលខុស"),
             BotCommand("privacy", "🔒 ឯកជនភាព"),
             BotCommand("help", "❓ មគ្គុទ្ទេសក៍"),
@@ -309,6 +346,7 @@ def register_handlers(app: Application) -> Application:
     app.add_handler(CommandHandler("status", status_command))
     app.add_handler(CommandHandler("report", report_command))
     app.add_handler(CommandHandler("scan", handle_message))
+    app.add_handler(CommandHandler("hash", hash_command))
     app.add_handler(MessageHandler(filters.Document.ALL, handle_document))
     app.add_handler(MessageHandler((filters.TEXT | filters.CAPTION) & ~filters.COMMAND, handle_message))
     app.add_error_handler(error_handler)

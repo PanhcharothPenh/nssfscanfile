@@ -34,3 +34,14 @@ def test_combine_risk():
 def test_user_rate_limiter():
     rl = UserRateLimiter(2)
     assert [rl.allow(1), rl.allow(1), rl.allow(1), rl.allow(2)] == [True, True, False, True]
+
+
+def test_large_file_report_explains_hash_workflow():
+    from vt_scanner import VirusTotalScanner
+    msg = format_file_report("big.rar", VirusTotalScanner(api_key="k").file_too_large_result("big.rar", 30_000_000))
+    assert "certutil" in msg and "/hash" in msg and "🟢" not in msg
+
+
+def test_hash_not_found_says_not_safe():
+    msg = format_file_report("x", {"status": "UNKNOWN", "scanned": False, "not_found": True})
+    assert "មិនមែន" in msg and "🟢" not in msg

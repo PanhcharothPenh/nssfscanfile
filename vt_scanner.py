@@ -316,10 +316,46 @@ class VirusTotalScanner:
         self.cache.set(cache_key, res)
         return res
 
+    async def lookup_hash(self, digest: str) -> Dict[str, Any]:
+        """Look a file up by hash only (MD5/SHA-1/SHA-256). Works for any file size,
+        but only for files VirusTotal has already seen."""
+        digest = digest.strip().lower()
+        cache_key = f"file:{digest}"
+        cached = self.cache.get(cache_key)
+        if cached:
+            return cached
+        base = {"filename": digest, "sha256": digest, "hash_lookup": True}
+        if not self.api_key:
+            return self._unknown("VirusTotal is not configured.", **base)
+
+        resp = await self._request("GET", f"/files/{digest}")
+        if resp is None or resp.status_code != 200:
+            if resp is not None and resp.status_code == 404:
+                return self._unknown(
+                    "This hash is not in VirusTotal's database. That does NOT mean the file is safe.",
+                    not_found=True, **base,
+                )
+            return self._unknown(self._http_reason(resp), **base)
+
+        attrs = resp.json().get("data", {}).get("attributes", {})
+        stats = attrs.get("last_analysis_stats", {})
+        res = {
+            "scanned": True,
+            "provider": "VirusTotal v3 API",
+            **base,
+            "filename": attrs.get("meaningful_name", digest),
+            "status": _verdict(stats.get("malicious", 0), stats.get("suspicious", 0)),
+            "type_description": attrs.get("type_description", "File"),
+            "permalink": f"https://www.virustotal.com/gui/file/{digest}",
+            **_counts(stats),
+        }
+        self.cache.set(cache_key, res)
+        return res
+
     def file_too_large_result(self, filename: str, size: int) -> Dict[str, Any]:
         """Telegram bots cannot download files >20MB, so nothing can be scanned."""
         ext = os.path.splitext(filename)[1].lower()
         return self._unknown(
             "File is larger than 20MB, so it could not be downloaded and was NOT scanned.",
-            filename=filename, file_size=size, **self._type_hint(ext),
+            filename=filename, file_size=size, too_large=True, **self._type_hint(ext),
         )
