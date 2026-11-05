@@ -210,9 +210,8 @@ def format_file_report(filename: str, vt_result: Dict[str, Any]) -> str:
             parts.append(f"🔗 {_e(vt_result['permalink'])}")
     else:
         if vt_result.get("too_large"):
-            if warn and warn["high"]:
-                parts.append("ℹ️ ឯកសារធំជាង 20MB Telegram មិនអនុញ្ញាតឱ្យ Bot ទាញយកបានទេ។")
-            else:
+            flagged = bool(warn and warn["high"])
+            if not flagged:
                 parts.append("ℹ️ ឯកសារធំជាង 20MB Telegram មិនអនុញ្ញាតឱ្យ Bot ទាញយកបានទេ ដូច្នេះ <b>មិនទាន់បានស្កេន</b>។")
             if warn and warn["reasons"]:
                 parts.append(
@@ -225,7 +224,8 @@ def format_file_report(filename: str, vt_result: Dict[str, Any]) -> str:
                     f"{_e(vt_result.get('type_description', ''))} "
                     "ជាប្រភេទដែលជនខិលខូចប្រើញឹកញាប់។ កុំបើកវា លុះត្រាតែអ្នកទុកចិត្តអ្នកផ្ញើ។"
                 )
-            parts.append(BIG_FILE_HELP)
+            if not flagged:
+                parts.append(BIG_FILE_HELP)
         elif vt_result.get("not_found"):
             parts.append(
                 "ℹ️ VirusTotal មិនធ្លាប់ឃើញឯកសារនេះទេ។ នេះ <b>មិនមែន</b>មានន័យថាវាសុវត្ថិភាពទេ "

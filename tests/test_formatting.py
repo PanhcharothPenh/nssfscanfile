@@ -68,3 +68,12 @@ def test_plain_files_get_no_name_warning():
     assert filename_warnings("holiday.mp4") == {"high": False, "reasons": []}
     assert filename_warnings("report.pdf")["high"] is False
     assert filename_warnings("setup.exe")["high"] is True
+
+
+def test_flagged_big_file_has_no_help_block_but_plain_big_file_does():
+    from vt_scanner import VirusTotalScanner
+    s = VirusTotalScanner(api_key="k")
+    flagged = format_file_report("a.pdf.rar", s.file_too_large_result("a.pdf.rar", 30_000_000))
+    assert "virustotal.com" not in flagged and "20MB" not in flagged and "ព្រមាន" in flagged
+    plain = format_file_report("holiday.mp4", s.file_too_large_result("holiday.mp4", 30_000_000))
+    assert "virustotal.com" in plain and "មិនទាន់បានស្កេន" in plain and "🟢" not in plain
