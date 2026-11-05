@@ -179,6 +179,7 @@ async def report_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # --- scanning handlers -----------------------------------------------------------
 HASH_RE = re.compile(r"[a-fA-F0-9]{32}|[a-fA-F0-9]{40}|[a-fA-F0-9]{64}")
+VT_FILE_LINK_RE = re.compile(r"virustotal\.com/gui/file/([a-fA-F0-9]{64})")
 
 
 async def _hash_lookup(update: Update, digest: str):
@@ -222,6 +223,11 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if HASH_RE.fullmatch(text.strip()):
         await _hash_lookup(update, text.strip())
+        return
+    # A VirusTotal file report link contains the file hash: use it instead of scanning the link.
+    vt_link = VT_FILE_LINK_RE.search(text)
+    if vt_link:
+        await _hash_lookup(update, vt_link.group(1))
         return
 
     if is_command and not text and not _message_urls(msg):

@@ -20,6 +20,13 @@ BADGES = {
 SCORES = {"DANGEROUS": 90, "SUSPICIOUS": 60, "SAFE": 10, "UNKNOWN": 0, "ANALYZING": 0}
 TELEGRAM_LIMIT = 4000
 
+BIG_FILE_HELP = (
+    "✅ <b>វិធីពិនិត្យឯកសារនេះ (ងាយស្រួល)៖</b>\n"
+    "1️⃣ បើក <b>virustotal.com</b> → ចុច <i>Choose file</i> → ជ្រើសឯកសារ (រហូតដល់ 650MB)។ "
+    "ចម្លង Link លទ្ធផល ហើយផ្ញើមកកាន់ Bot ឬមើលលទ្ធផលនៅទីនោះ។\n"
+    "2️⃣ ឬផ្ញើលេខ <b>SHA-256</b> របស់ឯកសារមកកាន់ Bot (/hash ជួយបង្ហាញរបៀប)។"
+)
+
 HASH_HELP = (
     "💡 <b>ពិនិត្យឯកសារធំបានយ៉ាងងាយ៖</b>\n"
     "1️⃣ នៅលើ Windows បើក PowerShell ក្នុងថតឯកសារ ហើយវាយ៖\n"
@@ -158,7 +165,13 @@ def format_file_report(filename: str, vt_result: Dict[str, Any]) -> str:
     else:
         if vt_result.get("too_large"):
             parts.append("ℹ️ ឯកសារធំជាង 20MB Telegram មិនអនុញ្ញាតឱ្យ Bot ទាញយកបានទេ ដូច្នេះ <b>មិនទាន់បានស្កេន</b>។")
-            parts.append(HASH_HELP)
+            if vt_result.get("risky_file_type"):
+                parts.append(
+                    f"⚠️ <b>ការព្រមានតាមប្រភេទឯកសារ (មិនមែនជាលទ្ធផលស្កេនទេ)៖</b> "
+                    f"{_e(vt_result.get('type_description', ''))} "
+                    "ជាប្រភេទដែលជនខិលខូចប្រើញឹកញាប់។ កុំបើកវា លុះត្រាតែអ្នកទុកចិត្តអ្នកផ្ញើ។"
+                )
+            parts.append(BIG_FILE_HELP)
         elif vt_result.get("not_found"):
             parts.append(
                 "ℹ️ VirusTotal មិនធ្លាប់ឃើញឯកសារនេះទេ។ នេះ <b>មិនមែន</b>មានន័យថាវាសុវត្ថិភាពទេ "

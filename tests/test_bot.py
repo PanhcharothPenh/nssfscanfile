@@ -87,3 +87,19 @@ def test_hash_command_without_valid_hash_shows_help():
     bot.rate_limiter = bot.UserRateLimiter(100)
     asyncio.run(bot.hash_command(upd, SimpleNamespace(args=["nothing"])))
     assert "certutil" in msg.reply_text.await_args.args[0]
+
+
+def test_virustotal_report_link_uses_its_hash(monkeypatch):
+    monkeypatch.setattr(bot, "alog_scan_event", AsyncMock())
+    seen = []
+
+    async def fake_lookup(digest):
+        seen.append(digest)
+        return {"status": "SAFE", "scanned": True, "filename": "f", "malicious_count": 0,
+                "suspicious_count": 0, "total_engines": 70}
+
+    monkeypatch.setattr(bot.vt_scanner, "lookup_hash", fake_lookup)
+    h = "b" * 64
+    upd, msg = make_update(f"https://www.virustotal.com/gui/file/{h}/detection")
+    run_handler(upd)
+    assert seen == [h]
