@@ -18,3 +18,7 @@ ENV/
 .DS_Store
 .vscode/
 .idea/
+
+# local
+soc_scan.db
+.pytest_cache/

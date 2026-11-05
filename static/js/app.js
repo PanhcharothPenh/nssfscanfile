@@ -4,6 +4,32 @@ document.addEventListener("DOMContentLoaded", () => {
     fetchUsers();
 });
 
+// All /api/* routes (except the Telegram webhook) require the ADMIN_TOKEN.
+// It is kept in sessionStorage only (cleared when the tab closes).
+async function apiFetch(url, options = {}) {
+    const send = () => fetch(url, {
+        ...options,
+        headers: { ...(options.headers || {}), Authorization: "Bearer " + (sessionStorage.getItem("adminToken") || "") }
+    });
+    let res = await send();
+    if (res.status === 401) {
+        const token = prompt("បញ្ចូល Admin Token ដើម្បីចូលប្រើ Dashboard:");
+        if (!token) throw new Error("Unauthorized");
+        sessionStorage.setItem("adminToken", token.trim());
+        res = await send();
+        if (res.status === 401) {
+            sessionStorage.removeItem("adminToken");
+            throw new Error("Admin Token មិនត្រឹមត្រូវ");
+        }
+    }
+    if (!res.ok) {
+        let detail = res.statusText;
+        try { detail = (await res.json()).detail || detail; } catch (_) {}
+        throw new Error(detail);
+    }
+    return res;
+}
+
 const presets = {
     bank: "⚠️ ជូនដំណឹងបន្ទាន់ពីធនាគារ ABA Bank! គណនីរបស់អ្នកត្រូវបានផ្អាកបណ្តោះអាសន្ន ដោយសារបញ្ហាសុវត្ថិភាព។ សូមប្រញាប់ចុចតំណភ្ជាប់ https://aba-bank-verify.com/login ដើម្បីផ្ទៀងផ្ទាត់លេខកូដ OTP របស់អ្នកឱ្យបានមុនម៉ោង 5:00 ល្ងាច ដើម្បជៀសវាងការបិទគណនីរហូត!",
     threat: "⚠️ បទបញ្ជាបន្ទាន់ពីតុលាការ និងប៉ូលីស! គណនីរបស់អ្នកជាប់ពាក់ព័ន្ធករណីលាងលុយកខ្វក់។ ប្រសិនបើអ្នកមិនផ្ទេរប្រាក់ចំនួន $500 មកកាន់គណនីស៊ើបអង្កេត ក្នុងរយៈពេល 30 នាទីនេះទេ យើងនឹងចាត់វិធានការតាមផ្លូវច្បាប់ និងឃាត់ខ្លួនអ្នក!",
@@ -19,7 +45,7 @@ function loadPreset(type) {
 
 async function fetchStats() {
     try {
-        const res = await fetch("/api/stats");
+        const res = await apiFetch("/api/stats");
         const data = await res.json();
         
         document.getElementById("stat-total").innerText = data.total_scans || 0;
@@ -36,7 +62,7 @@ async function fetchStats() {
 
 async function fetchUsers() {
     try {
-        const res = await fetch("/api/users");
+        const res = await apiFetch("/api/users");
         const data = await res.json();
         const tbody = document.getElementById("users-tbody");
 
@@ -61,7 +87,7 @@ async function fetchUsers() {
 
 async function fetchLogs() {
     try {
-        const res = await fetch("/api/scans?limit=15");
+        const res = await apiFetch("/api/scans?limit=15");
         const logs = await res.json();
         const tbody = document.getElementById("logs-tbody");
 
@@ -75,10 +101,10 @@ async function fetchLogs() {
                 <td>#${log.id}</td>
                 <td><code style="color: var(--accent-blue); font-size: 0.85rem;">${escapeHtml(log.sender_id || 'web_user')}</code></td>
                 <td><span class="chip" style="font-size: 0.75rem; color: var(--accent-purple);">${escapeHtml(log.ip_address || 'Cloud IP')}</span></td>
-                <td style="font-size: 0.8rem; color: var(--text-muted);">${log.timestamp}</td>
-                <td><span class="chip" style="font-size: 0.75rem;">${log.scan_type}</span></td>
+                <td style="font-size: 0.8rem; color: var(--text-muted);">${escapeHtml(log.timestamp)}</td>
+                <td><span class="chip" style="font-size: 0.75rem;">${escapeHtml(log.scan_type)}</span></td>
                 <td style="max-width: 250px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(log.input_summary)}</td>
-                <td><span class="badge ${log.risk_level}">${log.risk_level}</span></td>
+                <td><span class="badge ${escapeHtml(log.risk_level)}">${escapeHtml(log.risk_level)}</span></td>
                 <td><strong>${log.risk_score}/100</strong></td>
             </tr>
         `).join("");
@@ -100,7 +126,7 @@ async function simulateTextScan() {
     container.innerHTML = '<div style="text-align:center;"><i class="fa-solid fa-spinner fa-spin" style="font-size: 2rem; color: var(--accent-blue);"></i><p style="margin-top:0.5rem;">កំពុងវិភាគសារ និងស្កេន VirusTotal v3...</p></div>';
 
     try {
-        const res = await fetch("/api/scan/text", {
+        const res = await apiFetch("/api/scan/text", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ text })
@@ -129,7 +155,7 @@ async function simulateFileScan() {
     container.innerHTML = '<div style="text-align:center;"><i class="fa-solid fa-spinner fa-spin" style="font-size: 2rem; color: var(--accent-blue);"></i><p style="margin-top:0.5rem;">កំពុងគណនា SHA-256 និងស្កេន VirusTotal v3...</p></div>';
 
     try {
-        const res = await fetch("/api/scan/file", {
+        const res = await apiFetch("/api/scan/file", {
             method: "POST",
             body: formData
         });
@@ -155,8 +181,8 @@ function renderReport(data) {
                 ${vtList.map(v => `
                     <div style="font-size: 0.85rem; margin-bottom: 0.25rem;">
                         <code>${escapeHtml(v.target)}</code> ➔ 
-                        <span class="badge ${v.status}">${v.status}</span> 
-                        (${v.malicious_count}/${v.total_engines} engines flagged)
+                        <span class="badge ${escapeHtml(v.status)}">${escapeHtml(v.status)}</span>
+                        ${v.scanned ? `(${v.malicious_count}/${v.total_engines} engines flagged)` : `— ${escapeHtml(v.message || "not verified")}`}
                     </div>
                 `).join("")}
             </div>
@@ -189,7 +215,7 @@ function renderReport(data) {
 
     container.innerHTML = `
         <div>
-            <div class="result-badge ${data.highest_risk}">${ai.risk_badge} (Score: ${ai.risk_score}/100)</div>
+            <div class="result-badge ${data.highest_risk}">${escapeHtml(ai.risk_badge).replace(/\*\*/g, "")} (Score: ${ai.risk_score}/100)</div>
             <h4 style="margin-bottom: 0.5rem;">${escapeHtml(ai.category)}</h4>
             <p style="font-size: 0.95rem; line-height: 1.5; color: #e5e7eb;">${escapeHtml(ai.summary_kh)}</p>
             ${factorsHtml}
@@ -211,19 +237,27 @@ function renderFileReport(data) {
         <div>
             <div class="result-badge ${data.risk_level}">FILE ${data.risk_level}: ${escapeHtml(data.filename)}</div>
             <h4 style="margin-bottom: 0.5rem;">VirusTotal File Hash Scan</h4>
-            <p style="font-size: 0.85rem; color: var(--text-muted);">SHA-256: <code>${vt.file_hash}</code></p>
-            <p style="font-size: 0.9rem; margin-top: 0.5rem;"><strong>ប្រភេទឯកសារ៖</strong> ${vt.extension_description}</p>
+            <p style="font-size: 0.85rem; color: var(--text-muted);">SHA-256: <code>${escapeHtml(vt.sha256)}</code></p>
+            <p style="font-size: 0.9rem; margin-top: 0.5rem;"><strong>ប្រភេទឯកសារ៖</strong> ${escapeHtml(vt.type_description || "File")}</p>
             <div style="margin-top: 0.75rem; background: rgba(0,0,0,0.2); padding: 0.85rem; border-radius: 8px;">
-                <p style="font-size: 0.9rem;"><strong>VirusTotal Detections:</strong> ${vt.malicious_count} / ${vt.total_engines} Engines Flagged Malicious</p>
+                ${vt.scanned
+                    ? `<p style="font-size: 0.9rem;"><strong>VirusTotal Detections:</strong> ${vt.malicious_count} / ${vt.total_engines} Engines Flagged Malicious</p>`
+                    : `<p style="font-size: 0.9rem;"><strong>មិនទាន់បានស្កេន (NOT scanned):</strong> ${escapeHtml(vt.message || "")}</p>`}
             </div>
             <div style="margin-top: 1rem; padding: 0.75rem; background: rgba(0, 242, 254, 0.05); border-left: 3px solid var(--accent-blue); font-size: 0.85rem;">
-                <strong>💡 ការណែនាំ៖</strong> ${data.risk_level === 'DANGEROUS' ? '⛔ ហាមបើក ឬដំឡើងឯកសារនេះដាច់ខាត!' : '✅ ឯកសារនេះត្រូវបានស្កេនយ៉ាងម៉ត់ចត់។'}
+                <strong>💡 ការណែនាំ៖</strong> ${{
+                    DANGEROUS: '⛔ ហាមបើក ឬដំឡើងឯកសារនេះដាច់ខាត!',
+                    SUSPICIOUS: '⚠️ កុំប្រញាប់បើក ផ្ទៀងផ្ទាត់ប្រភពជាមុន។',
+                    SAFE: '✅ មិនរកឃើញមេរោគ ប៉ុន្តែនេះមិនមែនជាការធានា ១០០% ទេ។',
+                    ANALYZING: '⏳ កំពុងវិភាគ សូមសាកល្បងម្តងទៀតក្រោយមួយនាទី។',
+                    UNKNOWN: '❗ ឯកសារនេះមិនទាន់ត្រូវបានស្កេន កុំសន្មត់ថាសុវត្ថិភាព។'
+                }[data.risk_level] || ''}
             </div>
         </div>
     `;
 }
 
 function escapeHtml(str) {
-    if (!str) return '';
-    return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    if (str === null || str === undefined) return '';
+    return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }

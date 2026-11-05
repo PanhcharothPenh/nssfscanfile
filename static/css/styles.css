@@ -329,3 +329,7 @@ tr:hover {
 .badge.DANGEROUS { background: rgba(239, 68, 68, 0.2); color: var(--danger-red); }
 .badge.SUSPICIOUS { background: rgba(245, 158, 11, 0.2); color: var(--warning-yellow); }
 .badge.SAFE { background: rgba(16, 185, 129, 0.2); color: var(--safe-green); }
+
+/* Honest "could not verify" states */
+.result-badge.UNKNOWN, .result-badge.ANALYZING { background: rgba(148, 163, 184, 0.2); color: #cbd5e1; border: 1px solid #94a3b8; }
+.badge.UNKNOWN, .badge.ANALYZING { background: rgba(148, 163, 184, 0.2); color: #cbd5e1; }
