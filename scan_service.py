@@ -2,6 +2,7 @@
 results, per-user rate limiting, and Telegram-safe (HTML) report formatting."""
 import asyncio
 import html
+import os
 import time
 from collections import defaultdict, deque
 from typing import Any, Dict, Iterable, List, Optional, Tuple
@@ -148,12 +149,52 @@ FILE_STEPS = {
 }
 
 
+WARNING_BADGE = "🟠 <b>ការព្រមាន៖ គួរឱ្យសង្ស័យតាមឈ្មោះ/ប្រភេទឯកសារ (មិនទាន់ស្កេនមេរោគ)</b>"
+
+DISGUISE_EXTS = {".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx", ".jpg", ".jpeg", ".png", ".txt", ".mp4", ".mp3"}
+PACKED_OR_EXEC_EXTS = {".rar", ".zip", ".7z", ".iso", ".exe", ".apk", ".msi", ".scr", ".bat", ".cmd", ".vbs", ".js", ".jar", ".ps1"}
+EXEC_EXTS = {".exe", ".apk", ".msi", ".scr", ".bat", ".cmd", ".vbs", ".jar", ".ps1"}
+ARCHIVE_EXTS = {".rar", ".zip", ".7z", ".iso"}
+LURE_WORDS = [
+    "invitation", "invoice", "payment", "salary", "urgent", "receipt",
+    "លិខិតអញ្ជើញ", "វិក្កយបត្រ", "ប្រាក់ខែ", "បន្ទាន់", "ប័ណ្ណ", "សំបុត្រ", "ដំណឹង", "ជូនពរ",
+]
+
+
+def filename_warnings(filename: str) -> Dict[str, Any]:
+    """Offline, name-based red flags. This is NOT a malware scan: it never says a file is safe."""
+    name = (filename or "").lower()
+    stem, ext2 = os.path.splitext(name)
+    _, ext1 = os.path.splitext(stem)
+    reasons: List[str] = []
+    high = False
+
+    if ext1 in DISGUISE_EXTS and ext2 in PACKED_OR_EXEC_EXTS:
+        reasons.append(f"ឈ្មោះមាន 2 កន្ទុយ ({ext1}{ext2}): ធ្វើពុតជាឯកសារ <b>{ext1}</b> ប៉ុន្តែជាពិតជា <b>{ext2}</b>")
+        high = True
+    if ext2 in EXEC_EXTS:
+        reasons.append(f"ជាឯកសារដំឡើង/ដំណើរការកម្មវិធី ({ext2}) ដែលអាចដំឡើងមេរោគ")
+        high = True
+    elif ext2 in ARCHIVE_EXTS:
+        reasons.append(f"ជាឯកសារបង្ហាប់ ({ext2}) ដែលអាចលាក់មេរោគ និងជៀសវាងការស្កេន")
+    elif ext2 in (".docm", ".xlsm"):
+        reasons.append(f"ឯកសារមាន Macro ({ext2}) ដែលអាចដំណើរការកូដអាក្រក់")
+        high = True
+    if any(w in name for w in LURE_WORDS):
+        reasons.append("ឈ្មោះប្រើពាក្យទាក់ទាញដែលជនបោកប្រាស់ប្រើញឹកញាប់ (លិខិតអញ្ជើញ វិក្កយបត្រ ប្រាក់ខែ…)")
+    return {"high": high, "reasons": reasons}
+
+
 def format_file_report(filename: str, vt_result: Dict[str, Any]) -> str:
     status = vt_result.get("status", "UNKNOWN")
+    warn = None
+    if not vt_result.get("scanned") and not vt_result.get("hash_lookup"):
+        warn = filename_warnings(filename)
+    badge = WARNING_BADGE if warn and warn["high"] else BADGES.get(status, status)
     parts = [
         "🛡️ <b>លទ្ធផលត្រួតពិនិត្យឯកសារ</b>",
         f"📁 <b>ឈ្មោះឯកសារ៖</b> <code>{_e(filename)}</code>",
-        f"🏷️ <b>ស្ថានភាព៖</b> {BADGES.get(status, status)}",
+        f"🏷️ <b>ស្ថានភាព៖</b> {badge}",
     ]
     if vt_result.get("scanned"):
         parts.append(
@@ -165,7 +206,13 @@ def format_file_report(filename: str, vt_result: Dict[str, Any]) -> str:
     else:
         if vt_result.get("too_large"):
             parts.append("ℹ️ ឯកសារធំជាង 20MB Telegram មិនអនុញ្ញាតឱ្យ Bot ទាញយកបានទេ ដូច្នេះ <b>មិនទាន់បានស្កេន</b>។")
-            if vt_result.get("risky_file_type"):
+            if warn and warn["reasons"]:
+                parts.append(
+                    "🔎 <b>ការត្រួតពិនិត្យបឋមតាមឈ្មោះឯកសារ (មិនមែនជាការស្កេនមេរោគទេ)៖</b>\n"
+                    + "\n".join(f"• {r}" for r in warn["reasons"])
+                    + "\n⚠️ កុំបើកឯកសារនេះ លុះត្រាតែអ្នកទុកចិត្តអ្នកផ្ញើ ១០០%។"
+                )
+            elif vt_result.get("risky_file_type"):
                 parts.append(
                     f"⚠️ <b>ការព្រមានតាមប្រភេទឯកសារ (មិនមែនជាលទ្ធផលស្កេនទេ)៖</b> "
                     f"{_e(vt_result.get('type_description', ''))} "

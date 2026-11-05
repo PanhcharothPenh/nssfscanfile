@@ -50,4 +50,21 @@ def test_hash_not_found_says_not_safe():
 def test_large_archive_gets_type_warning_but_never_safe():
     from vt_scanner import VirusTotalScanner
     msg = format_file_report("a.rar", VirusTotalScanner(api_key="k").file_too_large_result("a.rar", 30_000_000))
-    assert "មិនមែនជាលទ្ធផលស្កេនទេ" in msg and "🟢" not in msg
+    assert "មិនមែនជាការស្កេនមេរោគទេ" in msg and "🟢" not in msg
+
+
+def test_disguised_archive_gets_warning_not_a_verdict():
+    from scan_service import filename_warnings
+    from vt_scanner import VirusTotalScanner
+    name = "លិខិតអញ្ជើញ_.pdf.rar"
+    w = filename_warnings(name)
+    assert w["high"] and len(w["reasons"]) >= 2
+    msg = format_file_report(name, VirusTotalScanner(api_key="k").file_too_large_result(name, 30_000_000))
+    assert "🟠" in msg and "មិនទាន់ស្កេនមេរោគ" in msg and "🟢" not in msg and "🔴" not in msg
+
+
+def test_plain_files_get_no_name_warning():
+    from scan_service import filename_warnings
+    assert filename_warnings("holiday.mp4") == {"high": False, "reasons": []}
+    assert filename_warnings("report.pdf")["high"] is False
+    assert filename_warnings("setup.exe")["high"] is True
