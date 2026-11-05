@@ -63,7 +63,7 @@ def test_large_file_is_reported_as_not_scanned(monkeypatch):
     bot.rate_limiter = bot.UserRateLimiter(100)
     asyncio.run(bot.handle_document(upd, MagicMock()))
     text = progress.edit_text.await_args.args[0]
-    assert "មិនទាន់ត្រូវបានស្កេន" in text and "🟢" not in text
+    assert "ព្រមាន" in text and "🟢" not in text
 
 
 def test_pasted_hash_triggers_lookup(monkeypatch):

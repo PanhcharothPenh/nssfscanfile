@@ -5,7 +5,7 @@ def test_file_report_unknown_never_says_safe():
     msg = format_file_report("evil.apk", {
         "status": "UNKNOWN", "scanned": False, "message": "File is larger than 20MB",
         "high_risk_file_type": True, "type_description": "APK"})
-    assert "មិនទាន់ត្រូវបានស្កេន" in msg
+    assert "ព្រមាន" in msg
     assert "🟢" not in msg
 
 
@@ -50,7 +50,7 @@ def test_hash_not_found_says_not_safe():
 def test_large_archive_gets_type_warning_but_never_safe():
     from vt_scanner import VirusTotalScanner
     msg = format_file_report("a.rar", VirusTotalScanner(api_key="k").file_too_large_result("a.rar", 30_000_000))
-    assert "មិនមែនជាការស្កេនមេរោគទេ" in msg and "🟢" not in msg
+    assert "ហេតុផលនៃការព្រមាន" in msg and "🟢" not in msg
 
 
 def test_disguised_archive_gets_warning_not_a_verdict():
@@ -60,7 +60,7 @@ def test_disguised_archive_gets_warning_not_a_verdict():
     w = filename_warnings(name)
     assert w["high"] and len(w["reasons"]) >= 2
     msg = format_file_report(name, VirusTotalScanner(api_key="k").file_too_large_result(name, 30_000_000))
-    assert "🟠" in msg and "មិនទាន់ស្កេនមេរោគ" in msg and "🟢" not in msg and "🔴" not in msg
+    assert "🟠" in msg and "ព្រមាន" in msg and "មិនទាន់" not in msg and "🟢" not in msg and "🔴" not in msg
 
 
 def test_plain_files_get_no_name_warning():

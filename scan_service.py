@@ -149,7 +149,12 @@ FILE_STEPS = {
 }
 
 
-WARNING_BADGE = "🟠 <b>ការព្រមាន៖ គួរឱ្យសង្ស័យតាមឈ្មោះ/ប្រភេទឯកសារ (មិនទាន់ស្កេនមេរោគ)</b>"
+WARNING_BADGE = "🟠 <b>ព្រមាន៖ ឯកសារនេះគួរឱ្យសង្ស័យ</b>"
+WARNING_STEPS = [
+    "⛔ កុំបើក ឬដំណើរការឯកសារនេះ លុះត្រាតែអ្នកទុកចិត្តអ្នកផ្ញើ ១០០%។",
+    "🔍 សួរអ្នកផ្ញើតាមវិធីផ្សេង (ទូរស័ព្ទ) ថាគាត់ផ្ញើឯកសារនេះពិតមែនឬទេ។",
+    "🗑️ បើមិនស្គាល់អ្នកផ្ញើ សូមលុបឯកសារ និង Block គណនីនោះ។",
+]
 
 DISGUISE_EXTS = {".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx", ".jpg", ".jpeg", ".png", ".txt", ".mp4", ".mp3"}
 PACKED_OR_EXEC_EXTS = {".rar", ".zip", ".7z", ".iso", ".exe", ".apk", ".msi", ".scr", ".bat", ".cmd", ".vbs", ".js", ".jar", ".ps1"}
@@ -205,12 +210,14 @@ def format_file_report(filename: str, vt_result: Dict[str, Any]) -> str:
             parts.append(f"🔗 {_e(vt_result['permalink'])}")
     else:
         if vt_result.get("too_large"):
-            parts.append("ℹ️ ឯកសារធំជាង 20MB Telegram មិនអនុញ្ញាតឱ្យ Bot ទាញយកបានទេ ដូច្នេះ <b>មិនទាន់បានស្កេន</b>។")
+            if warn and warn["high"]:
+                parts.append("ℹ️ ឯកសារធំជាង 20MB Telegram មិនអនុញ្ញាតឱ្យ Bot ទាញយកបានទេ។")
+            else:
+                parts.append("ℹ️ ឯកសារធំជាង 20MB Telegram មិនអនុញ្ញាតឱ្យ Bot ទាញយកបានទេ ដូច្នេះ <b>មិនទាន់បានស្កេន</b>។")
             if warn and warn["reasons"]:
                 parts.append(
-                    "🔎 <b>ការត្រួតពិនិត្យបឋមតាមឈ្មោះឯកសារ (មិនមែនជាការស្កេនមេរោគទេ)៖</b>\n"
+                    "🔎 <b>ហេតុផលនៃការព្រមាន (តាមឈ្មោះឯកសារ)៖</b>\n"
                     + "\n".join(f"• {r}" for r in warn["reasons"])
-                    + "\n⚠️ កុំបើកឯកសារនេះ លុះត្រាតែអ្នកទុកចិត្តអ្នកផ្ញើ ១០០%។"
                 )
             elif vt_result.get("risky_file_type"):
                 parts.append(
@@ -231,6 +238,7 @@ def format_file_report(filename: str, vt_result: Dict[str, Any]) -> str:
                 f"⚠️ ប្រភេទឯកសារនេះ ({_e(vt_result.get('type_description', ''))}) ជាប្រភេទដែលជនខិលខូចប្រើញឹកញាប់។"
                 " នេះជាការព្រមានអំពីប្រភេទឯកសារ មិនមែនជាលទ្ធផលស្កេនមេរោគទេ។"
             )
-    parts.append("⚠️ <b>សូមអនុវត្ត៖</b>\n" + "\n".join(FILE_STEPS.get(status, FILE_STEPS["UNKNOWN"])))
+    steps = WARNING_STEPS if warn and warn["high"] else FILE_STEPS.get(status, FILE_STEPS["UNKNOWN"])
+    parts.append("⚠️ <b>សូមអនុវត្ត៖</b>\n" + "\n".join(steps))
     parts.append(f"---\n{FOOTER}")
     return _clip("\n\n".join(parts))
